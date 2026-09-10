@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>FieldStats MVP</title>
+  <?!= include('estilos'); ?>
+</head>
+
+<body>
+
+  <!-- Fondo dinámico animado - FieldStats Brand -->
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <div id="loading-overlay">Cargando...</div>
+
+  <!-- MODAL DE GOLES -->
+  <div id="modal-goles" class="modal">
+    <div class="modal-content">
+      <h3><span class="menu-icon" style="width:30px;height:30px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2c0 0-2 4.5-2 10s2 10 2 10"/><path d="M12 2c0 0 2 4.5 2 10s-2 10-2 10"/><path d="M2 12h20"/></svg></span> Cargar Gol</h3>
+      <div class="input-group">
+        <label>¿Quién metió el gol?</label>
+        <select id="select-goleador" class="selector" style="width:100%"></select>
+      </div>
+      <div class="input-group">
+        <label>Asistencia (Opcional)</label>
+        <select id="select-asistidor" class="selector" style="width:100%"></select>
+      </div>
+      <button class="btn btn-primary" onclick="confirmarGolModal()">Guardar Gol</button>
+      <button class="btn btn-outline" style="margin-top:10px" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- PANTALLA DE LOGIN -->
+    <div id="screen-login" class="screen active">
+      <h1>FieldStats</h1>
+      <p class="subtitle">Gestión Deportiva K-12</p>
+      <div class="input-group">
+        <label>ID Usuario / Email</label>
+        <input type="text" id="username" placeholder="Tu usuario, DNI o Email">
+      </div>
+      <div class="input-group">
+        <label>Contraseña</label>
+        <div style="position: relative;">
+          <input type="password" id="password" placeholder="••••••••" style="width: 100%; padding-right: 40px;">
+          <button type="button" onclick="togglePassword('password')"
+            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-verde-energia); display:flex; align-items:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
+      <div style="margin-top: 24px; text-align: center;">
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">¿No tienes cuenta o quieres activarla?
+        </p>
+        <button class="btn btn-outline" onclick="navigateTo('screen-registro-jugador')"
+          style="margin-bottom: 8px;">Activar Cuenta de Jugador</button>
+        <button class="btn btn-outline" onclick="navigateTo('screen-registro-externo')">Registrarse como Externo
+          (Padres)</button>
+      </div>
+    </div>
+
+    <!-- PANTALLAS DE REGISTRO -->
+    <div id="screen-registro-jugador" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-login')">← Volver</button></div>
+      <h2>Activar Cuenta de Jugador</h2>
+      <div class="input-group"><label>Tu DNI</label><input type="number" id="reg-jugador-dni" style="width:100%"
+          placeholder="Ej: 50123456"></div>
+      <div class="input-group"><label>Token</label><input type="text" id="reg-jugador-token"
+          placeholder="Ej: JUGADOR2026"></div>
+      <div class="input-group"><label>Contraseña</label><input type="password" id="reg-jugador-pass" style="width:100%"
+          placeholder="Mínimo 6 caracteres"></div>
+      <button class="btn btn-primary" onclick="crearCuentaJugador()">Activar</button>
+    </div>
+
+    <div id="screen-registro-externo" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-login')">← Volver</button></div>
+      <h2>Registro Padres</h2>
+      <div class="input-group"><label>Email</label><input type="text" id="reg-ext-email"
+          placeholder="correo@ejemplo.com"></div>
+      <div class="input-group"><label>Contraseña</label><input type="password" id="reg-ext-pass" style="width:100%"
+          placeholder="Mínimo 6 caracteres"></div>
+      <button class="btn btn-primary" onclick="crearCuentaExterno()">Registrarme</button>
+    </div>
+
+    <!-- DASHBOARD ADMIN (PROFESOR) -->
+    <div id="screen-admin" class="screen">
+      <div class="nav-bar"><span>Panel de Control</span><button class="nav-btn"
+          onclick="navigateTo('screen-login')">Salir</button></div>
+
+      <div class="input-group" style="margin-bottom: 24px;">
+        <label>Deporte Activo:</label>
+        <select id="selector-deporte" class="selector" onchange="onCambioDeporteAdmin()">
+          <option value="DEP1">Fútbol (DEP1)</option>
+          <option value="DEP2">Handball (DEP2)</option>
+        </select>
+      </div>
+
+      <div class="action-card" onclick="iniciarTomaAsistencia()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg></span> 1. Toma de Asistencia</h3>
+        <p class="subtitle" style="margin-bottom:0">Lista rápida de entrenamiento</p>
+      </div>
+      <div class="action-card" onclick="abrirMenuConvocatoria()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> 2. Convocar Plantel</h3>
+        <p class="subtitle" style="margin-bottom:0">Citar jugadores para un partido</p>
+      </div>
+      <div class="action-card" onclick="navigateTo('screen-partidos-menu')">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2c0 0-2 4.5-2 10s2 10 2 10"/><path d="M12 2c0 0 2 4.5 2 10s-2 10-2 10"/><path d="M2 12h20"/></svg></span> 3. Partidos y Estadísticas</h3>
+        <p class="subtitle" style="margin-bottom:0">Crear fechas y cargar goles</p>
+      </div>
+      <div class="action-card" onclick="navigateTo('screen-registro')"
+        style="border-color: var(--color-dorado); margin-top: 20px;">
+        <h3><span class="menu-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></span> 4. Dar de Alta Alumno</h3>
+        <p class="subtitle" style="margin-bottom:0">Registrar en BD del colegio</p>
+      </div>
+    </div>
+
+    <!-- ALTA ALUMNO -->
+    <div id="screen-registro" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-admin')">← Volver</button></div>
+      <h2>Alta de Alumno</h2>
+      <div class="input-group"><label>Nombre</label><input type="text" id="reg-nombre" placeholder="Ej: Juani"></div>
+      <div class="input-group"><label>Apellido</label><input type="text" id="reg-apellido" placeholder="Ej: Muñoz">
+      </div>
+      <div class="input-group"><label>DNI</label><input type="number" id="reg-dni" style="width: 100%"
+          placeholder="Ej: 50123456"></div>
+      <div class="input-group"><label>Email</label><input type="text" id="reg-email" placeholder="Ej: juani@gmail.com">
+      </div>
+      <div class="input-group"><label>Fecha Nac.</label><input type="date" id="reg-fnac" style="width: 100%"></div>
+      <div class="input-group">
+        <label>Deportes:</label>
+        <div style="margin-top:10px;">
+          <div class="player-row">
+            <span>Fútbol</span>
+            <label class="toggle-switch"><input type="checkbox" id="reg-dep1" value="DEP1"
+                onchange="toggleCamisetaInput('DEP1')"><span class="slider"></span></label>
+          </div>
+          <div id="input-camiseta-DEP1" style="display:none; padding:10px 0;"><input type="number" id="camiseta-DEP1"
+              placeholder="N° Camiseta" style="width:100%"></div>
+          <div class="player-row">
+            <span>Handball</span>
+            <label class="toggle-switch"><input type="checkbox" id="reg-dep2" value="DEP2"
+                onchange="toggleCamisetaInput('DEP2')"><span class="slider"></span></label>
+          </div>
+          <div id="input-camiseta-DEP2" style="display:none; padding:10px 0;"><input type="number" id="camiseta-DEP2"
+              placeholder="N° Camiseta" style="width:100%"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="guardarNuevoJugador()">Registrar</button>
+    </div>
+
+    <!-- ASISTENCIA -->
+    <div id="screen-asistencia" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-admin')">← Volver</button></div>
+      <h2 id="titulo-asistencia">Asistencia</h2>
+      <div id="asistencia-list" style="margin-bottom: 24px;"></div>
+      <button class="btn btn-primary" onclick="guardarAsistencia()">Guardar Lista</button>
+    </div>
+
+    <!-- MENU PARTIDOS -->
+    <div id="screen-partidos-menu" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-admin')">← Volver</button></div>
+      <h2>Gestión de Partidos</h2>
+      <div class="action-card" onclick="navigateTo('screen-añadir-partido')">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="19" y1="16" x2="19" y2="22"/><line x1="16" y1="19" x2="22" y2="19"/></svg></span> Añadir Partidos</h3>
+        <p class="subtitle" style="margin-bottom:0">Agendar nuevos encuentros</p>
+      </div>
+      <div class="action-card" onclick="abrirCargaDatosPartido()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span> Cargar Datos (Goles)</h3>
+        <p class="subtitle" style="margin-bottom:0">Finalizar partidos jugados</p>
+      </div>
+      <div class="action-card" onclick="abrirDashboardProfesor()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span> Estadísticas Generales</h3>
+        <p class="subtitle" style="margin-bottom:0">Fixture, tabla de posiciones y ranking de jugadores</p>
+      </div>
+    </div>
+
+    <!-- AÑADIR PARTIDO -->
+    <div id="screen-añadir-partido" class="screen">
+      <div class="nav-bar"><button class="nav-btn" onclick="navigateTo('screen-partidos-menu')">← Volver</button></div>
+      <h2>Nuevo Partido</h2>
+      <div class="input-group"><label>Visitante</label><input type="text" id="partido-visita" placeholder="Ej: Neumann">
+      </div>
+      <div class="input-group"><label>Fecha</label><input type="date" id="partido-fecha" style="width:100%"></div>
+      <div class="input-group"><label>Hora</label><input type="time" id="partido-hora" style="width:100%"></div>
+      <div class="input-group">
+        <label>Categorías que juegan:</label>
+        <div style="margin-top:10px;">
+          <div class="player-row"><span>Menores</span><label class="toggle-switch"><input type="checkbox"
+                class="cat-check" value="Menores"><span class="slider"></span></label></div>
+          <div class="player-row"><span>Cadetes</span><label class="toggle-switch"><input type="checkbox"
+                class="cat-check" value="Cadetes"><span class="slider"></span></label></div>
+          <div class="player-row"><span>Juveniles</span><label class="toggle-switch"><input type="checkbox"
+                class="cat-check" value="Juveniles"><span class="slider"></span></label></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="crearPartidos()">Agendar Partido/s</button>
+    </div>
+
+    <!-- CONVOCAR PLANTEL -->
+    <div id="screen-convocar" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-admin')">← Volver</button>
+        <span id="header-deporte-convocar" style="font-weight:bold; color:var(--primary)"></span>
+      </div>
+      <h2>Convocatoria</h2>
+      <div class="toggle-group">
+        <div id="toggle-conv-pendientes" class="toggle-option active" onclick="setEstadoFiltro('conv', 'Pendiente')">
+          Pendientes</div>
+        <div id="toggle-conv-finalizados" class="toggle-option" onclick="setEstadoFiltro('conv', 'Finalizado')">
+          Finalizados</div>
+      </div>
+      <div class="input-group">
+        <label>Selecciona Partido:</label>
+        <select id="select-partido-convocar" class="selector" style="width:100%"
+          onchange="cargarListaConvocatoria()"></select>
+      </div>
+      <div id="convocatoria-list" style="margin-bottom: 24px;"></div>
+      <div id="area-botones-convocar">
+        <button id="btn-guardar-plantel" class="btn btn-primary" onclick="guardarConvocatoria()">Guardar
+          Plantel</button>
+        <button id="btn-ver-plantel" class="btn btn-outline" style="display:none;" onclick="verPlantelLectura()">Ver
+          Plantel</button>
+      </div>
+    </div>
+
+    <!-- WIZARD CARGAR DATOS (GOLES) -->
+    <div id="screen-cargar-datos" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-partidos-menu')">← Volver</button>
+        <span id="header-deporte-datos" style="font-weight:bold; color:var(--primary)"></span>
+      </div>
+      <h2>Cargar Resultado</h2>
+      <div class="toggle-group">
+        <div id="toggle-datos-pendientes" class="toggle-option active" onclick="setEstadoFiltro('datos', 'Pendiente')">
+          Por Cargar</div>
+        <div id="toggle-datos-finalizados" class="toggle-option" onclick="setEstadoFiltro('datos', 'Finalizado')">Editar
+          Finalizados</div>
+      </div>
+      <div class="input-group">
+        <label>Partido:</label>
+        <select id="select-partido-datos" class="selector" style="width:100%"
+          onchange="iniciarWizardPartido()"></select>
+      </div>
+      <div id="wizard-zona" style="display:none;">
+        <div id="info-edicion"
+          style="display:none; color: #ef4444; font-size:12px; margin-bottom:10px; text-align:center;">
+          <svg class="inline-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;color:#ef4444"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Estás editando un partido finalizado. Al guardar se reescribirán las estadísticas.
+        </div>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <div class="action-card"
+            style="flex:1; text-align:center; padding:20px; background:var(--success); color:white; border:none"
+            onclick="abrirModalGol()">
+            <h3 style="color:white; margin:0">Gol Goethe</h3>
+          </div>
+          <div class="action-card"
+            style="flex:1; text-align:center; padding:20px; border:none; background:#ef4444; color:white"
+            onclick="anotarGolRival()">
+            <h3 style="color:white; margin:0">Gol Rival</h3>
+          </div>
+        </div>
+        <div style="margin-top:20px; padding:15px; background:#f1f5f9; border-radius:10px;">
+          <h4 style="text-align:center">Historial</h4>
+          <ul id="historial-goles" style="list-style:none; padding:0; font-size:14px;"></ul>
+        </div>
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; font-size:24px; font-weight:bold;">
+          <span>Goethe <span id="marcador-goethe">0</span></span>
+          <span>-</span>
+          <span><span id="marcador-rival">0</span> Rival</span>
+        </div>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="finalizarPartido()">Finalizar y
+          Guardar</button>
+      </div>
+    </div>
+
+    <!-- PANEL DEL JUGADOR (MENU PRINCIPAL) -->
+    <div id="screen-jugador" class="screen">
+      <div class="nav-bar">
+        <span>Panel del Jugador</span>
+        <button class="nav-btn" onclick="navigateTo('screen-login')">Salir</button>
+      </div>
+      <h2>Panel del Jugador</h2>
+      <p class="subtitle" style="margin-bottom: 24px;">Selecciona una sección para gestionar tu actividad deportiva</p>
+
+      <div class="action-card" onclick="iniciarMisConvocatorias()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span> Mis Convocatorias</h3>
+        <p class="subtitle" style="margin-bottom:0">Ver citaciones y confirmar asistencia</p>
+      </div>
+      <div class="action-card" onclick="iniciarMisEstadisticas()">
+        <h3><span class="menu-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> Mis Estadísticas</h3>
+        <p class="subtitle" style="margin-bottom:0">Historial y rendimiento personal</p>
+      </div>
+      <div class="action-card" onclick="iniciarDashboardGeneralJugador()">
+        <h3><span class="menu-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Dashboard General</h3>
+        <p class="subtitle" style="margin-bottom:0">Estadísticas globales del colegio</p>
+      </div>
+    </div>
+
+    <!-- DASHBOARD GENERAL - JUGADOR -->
+    <div id="screen-dashboard-general-jugador" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-jugador')">← Volver</button>
+        <span style="font-weight:bold; color:var(--primary)">Dashboard General</span>
+      </div>
+      <h2>Dashboard General</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">Estadísticas globales del colegio</p>
+
+      <!-- Selector de deporte -->
+      <div class="input-group" style="margin-bottom:16px;">
+        <label>Deporte:</label>
+        <select id="jugador-selector-deporte" class="selector" onchange="onCambioDeporteJugador()">
+          <option value="DEP1">Fútbol</option>
+          <option value="DEP2">Handball</option>
+        </select>
+      </div>
+
+      <!-- Tabs: Partidos | Tabla -->
+      <div class="toggle-group" style="margin-bottom:16px;">
+        <div id="jugador-tab-partidos" class="toggle-option active" onclick="jugadorSwitchTab('partidos')">Partidos</div>
+        <div id="jugador-tab-tabla" class="toggle-option" onclick="jugadorSwitchTab('tabla')">Tabla</div>
+      </div>
+
+      <!-- Sub-toggle Disputados / Pendientes (solo visible en tab Partidos) -->
+      <div id="jugador-partidos-subtoggle" class="toggle-group" style="margin-bottom:16px;">
+        <div id="jugador-tog-disputados" class="toggle-option active" onclick="jugadorSwitchEstado('Finalizado')">Disputados</div>
+        <div id="jugador-tog-pendientes" class="toggle-option" onclick="jugadorSwitchEstado('Pendiente')">Pendientes</div>
+      </div>
+
+      <!-- Selector de categoría (visible en Partidos y Tabla) -->
+      <div class="input-group" style="margin-bottom:16px;" id="jugador-cat-wrapper">
+        <label>Categoría:</label>
+        <select id="jugador-selector-cat" class="selector" onchange="jugadorRecargar()">
+          <option value="Menores">Menores</option>
+          <option value="Cadetes" selected>Cadetes</option>
+          <option value="Juveniles">Juveniles</option>
+        </select>
+      </div>
+
+      <!-- Contenido dinámico -->
+      <div id="jugador-content-area"></div>
+    </div>
+
+    <!-- MIS CONVOCATORIAS (JUGADOR) -->
+    <div id="screen-mis-convocatorias" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-jugador')">← Volver</button>
+        <span style="font-weight:bold; color:var(--primary)">Mis Citaciones</span>
+      </div>
+      <h2>Mis Convocatorias</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">Confirma tu asistencia a los próximos encuentros agendados</p>
+      
+      <!-- Toggle de Deporte para Convocatorias -->
+      <div class="toggle-group" style="margin-bottom: 20px;">
+        <div id="conv-toggle-dep1" class="toggle-option active" onclick="filtrarDeporteConvocatorias('DEP1')">Fútbol</div>
+        <div id="conv-toggle-dep2" class="toggle-option" onclick="filtrarDeporteConvocatorias('DEP2')">Handball</div>
+      </div>
+
+      <div id="mis-convocatorias-list" style="margin-bottom: 24px;"></div>
+    </div>
+
+    <!-- MIS ESTADISTICAS (JUGADOR) -->
+    <div id="screen-mis-estadisticas" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-jugador')">← Volver</button>
+        <span style="font-weight:bold; color:var(--primary)">Mis Estadísticas</span>
+      </div>
+      <div id="wrapper-toggle-deportes-stats" class="toggle-group" style="display:none; margin-bottom:20px;"></div>
+      <h2>Mis Estadísticas</h2>
+      <p id="stats-deporte-subtitle" class="subtitle" style="margin-bottom: 24px;">Historial y rendimiento personal</p>
+      <div id="stats-dinamicas-container"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         DASHBOARD ESTADÍSTICAS - PROFESOR
+         (Fixture + Tabla + Ranking Jugadores)
+    ═══════════════════════════════════════════════════ -->
+    <div id="screen-estadisticas-profe" class="screen">
+      <div class="nav-bar">
+        <button class="nav-btn" onclick="navigateTo('screen-admin')">← Volver</button>
+        <span style="font-weight:bold; color:var(--primary)" id="profe-stats-deporte-label">Estadísticas</span>
+      </div>
+
+      <!-- Tabs: Partidos | Tabla | Jugadores -->
+      <div class="toggle-group" style="margin-bottom:16px;">
+        <div id="profe-tab-partidos" class="toggle-option active" onclick="profeSwitchTab('partidos')">Partidos</div>
+        <div id="profe-tab-tabla" class="toggle-option" onclick="profeSwitchTab('tabla')">Tabla</div>
+        <div id="profe-tab-jugadores" class="toggle-option" onclick="profeSwitchTab('jugadores')">Jugadores</div>
+      </div>
+
+      <!-- Sub-toggle Disputados / Pendientes (solo visible en tab Partidos) -->
+      <div id="profe-partidos-subtoggle" class="toggle-group" style="margin-bottom:16px;">
+        <div id="profe-tog-disputados" class="toggle-option active" onclick="profeSwitchEstado('Finalizado')">Disputados
+        </div>
+        <div id="profe-tog-pendientes" class="toggle-option" onclick="profeSwitchEstado('Pendiente')">Pendientes</div>
+      </div>
+
+      <!-- Selector de categoría -->
+      <div class="input-group" style="margin-bottom:16px;" id="profe-cat-wrapper">
+        <label>Categoría:</label>
+        <select id="profe-selector-cat" class="selector" onchange="profeRecargar()">
+          <option value="Menores">Menores</option>
+          <option value="Cadetes" selected>Cadetes</option>
+          <option value="Juveniles">Juveniles</option>
+        </select>
+      </div>
+
+      <!-- Contenido dinámico del profe -->
+      <div id="profe-content-area"></div>
+    </div>
+
+    <!-- EXTERNO -->
+    <div id="screen-externo" class="screen">
+      <div class="nav-bar"><span>Sesión Activa</span><button class="nav-btn"
+          onclick="navigateTo('screen-login')">Salir</button></div>
+      <h2>Dashboard Público</h2>
+      <div class="action-card" onclick="alert('Módulo en desarrollo...')">
+        <h3><span class="menu-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Dashboard General</h3>
+      </div>
+    </div>
+
+  </div>
+
+  <?!= include('funciones'); ?>
+</body>
+
+</html>
