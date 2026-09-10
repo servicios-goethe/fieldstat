@@ -1,6 +1,8 @@
-# FieldStats: plan de migración y lanzamiento
+# FieldStats: plan de implementación y lanzamiento
 
-Fecha: 10 de septiembre de 2026. Base revisada: snapshot de `main` de servicios-goethe/fieldstat descargado mediante la API de GitHub. Alcance: análisis estático de los cuatro archivos de aplicación y los siete documentos disponibles. No se accedió a la planilla real, al despliegue de Apps Script ni a un proyecto Supabase. Las observaciones sobre código están verificadas en archivos; la calidad de los datos y la configuración del despliegue quedan pendientes de inspección.
+Fecha: 10 de septiembre de 2026. Base revisada: snapshot de `main` de servicios-goethe/fieldstat descargado mediante la API de GitHub. Alcance: análisis estático de los cuatro archivos de aplicación y los siete documentos disponibles. Se revisaron las hojas, cabeceras y conteos de una exportación de la planilla del MVP compartida por el responsable; no se accedió al despliegue de Apps Script ni a un proyecto Supabase. No se realizó una auditoría de calidad de los registros.
+
+Decisión confirmada por el responsable el 2026-09-10: **producción comienza desde cero, sin importar datos ni cuentas del MVP**. La planilla se usa exclusivamente como referencia funcional y estructural. No se requiere importador, limpieza ni conciliación del histórico; esta decisión no autoriza borrar o modificar la planilla.
 
 ## Decisión recomendada
 
@@ -8,7 +10,7 @@ Conservar los flujos y la identidad visual del MVP aprobado. Reemplazar la persi
 
 Primera producción: Goethe, fútbol y handball, profesores, alumnos y administración; padres con acceso únicamente a alumnos vinculados si ese portal integra el alcance comprometido. El diseño debe admitir nuevas temporadas y deportes sin copiar pantallas o tablas. La expansión comercial a múltiples colegios puede quedar fuera del primer lanzamiento; si ya hay otra institución comprometida, incorporar aislamiento por institución antes de crear el esquema.
 
-“100% operativo” debe significar que el alcance acordado supera criterios verificables de funcionamiento, seguridad, migración y recuperación. No significa ausencia garantizada de errores.
+“100% operativo” debe significar que el alcance acordado supera criterios verificables de funcionamiento, seguridad, carga inicial y recuperación. No significa ausencia garantizada de errores.
 
 ## Hallazgos concretos
 
@@ -19,16 +21,16 @@ Primera producción: Goethe, fútbol y handball, profesores, alumnos y administr
 | P0 | `registrarJugadorBackend`, `guardarConvocatoriaBD`, `responderConvocatoria` y `guardarPartidoFinalizadoBD` no verifican identidad ni permisos | El DNI y los IDs recibidos del navegador no acreditan autorización. Aplicar RLS y comprobación de actor en cada operación. La exposición efectiva del MVP depende del despliegue, que no se inspeccionó. |
 | P0 | `funciones.html:460–477`: borrar estadísticas y luego guardar en otra llamada; `code.gs:459–487`: cambia resultado antes de insertar eventos | Una falla puede perder estadísticas o dejar resultados incompletos. Cierre/corrección transaccional e idempotente. |
 | P1 | `code.gs:159–203`: escribe jugador antes de terminar validaciones de todos los deportes | Un error deja altas parciales. Validar y guardar como una unidad. |
-| P1 | `code.gs:342–357`: ID construido con deporte, categoría y fecha | Dos partidos de la misma categoría en un día colisionan. Usar UUID; conservar el ID antiguo solo para trazabilidad. |
+| P1 | `code.gs:342–357`: ID construido con deporte, categoría y fecha | Dos partidos de la misma categoría en un día colisionan. Usar UUID para los nuevos registros; no se necesitan equivalencias con IDs antiguos. |
 | P1 | `code.gs:360` y `423`: dos definiciones de `obtenerJugadoresParaConvocatoria` | Una definición reemplaza la otra. Unificar contrato e implementación. |
 | P1 | `code.gs:206–243`: plantel condicionado a cuenta activada | Se confunden inscripción deportiva y acceso a la app. Un jugador debe poder ser convocado y tener asistencia aun sin cuenta. |
 | P1 | `code.gs:122–157` y documento de categorías | Categoría dependiente del año actual, fecha inválida asignada a Cadetes y discrepancias en ejemplos históricos. Regla explícita por temporada y escolaridad, con casos aprobados y excepciones registradas. |
-| P1 | `obtenerRankingJugadores`, `obtenerEstadisticasJugadorCompleto` | Convocado no equivale a haber jugado. Separar convocatoria, confirmación, presencia y participación. No inventar participación histórica. |
+| P1 | `obtenerRankingJugadores`, `obtenerEstadisticasJugadorCompleto` | Convocado no equivale a haber jugado. Separar convocatoria, confirmación, presencia y participación. Registrar participación efectiva desde la puesta en marcha. |
 | P1 | `obtenerTablaPosiciones` | Mezcla temporadas al filtrar solo deporte/categoría; fija puntos 3/1/0. Configurar reglas de torneo. Si solo hay encuentros de Goethe, presentar tabla parcial, no clasificación completa del torneo. |
 | P1 | `funciones.html`: interpolación de nombres y otros valores en `innerHTML` | Riesgo de inyección de HTML. Usar renderizado escapado o `textContent`; probar entradas maliciosas. |
 | P2 | Frontend global de 824 líneas; backend de 1.084; lecturas completas de hojas y errores convertidos en listas vacías | Separar módulos, tipar contratos, paginar y distinguir vacío de error. No se encontraron manifiesto de dependencias, pruebas ni CI en el snapshot. |
 
-La documentación no es una descripción exacta del almacenamiento actual: `DATABASE_SCHEMA.md` propone una estructura de estadísticas agregadas, pero el código escribe un registro por gol con goleador/asistidor. El importador debe seguir las cabeceras y datos reales, no solo ese documento.
+La documentación no es una descripción exacta del almacenamiento actual: `DATABASE_SCHEMA.md` propone una estructura de estadísticas agregadas, pero el código escribe un registro por gol con goleador/asistidor. La referencia del nuevo modelo debe distinguir esa estructura real de la propuesta documental, aunque sus registros no se importarán.
 
 ## Correcciones al diseño de BD
 
@@ -56,11 +58,11 @@ Modelo objetivo propuesto:
 | Competición | `torneos`, `torneo_equipos`, `fechas`, `partidos`, `resultados(partido_id unique)`. Planteles y equipos son conceptos distintos; un colegio puede tener varios planteles. |
 | Convocatorias | `convocatorias(partido_id, inscripcion_id, convocado, respuesta, asistencia_real, transporte)` con unicidad por partido/inscripción. Respuesta pendiente no equivale a rechazo. |
 | Participación | `participaciones(convocatoria_id unique, titular, capitan, camiseta, jugo)` y `cambios`. Validar pertenencia, períodos y reglas del deporte. |
-| Estadística | `tipos_estadistica` por deporte y `eventos_partido(partido_id, jugador_id nullable, tipo_id, periodo, minuto nullable, asistidor_id nullable, equipo_id, origen)`. Admitir gol rival sin padrón individual y minutos históricos desconocidos. |
+| Estadística | `tipos_estadistica` por deporte y `eventos_partido(partido_id, jugador_id nullable, tipo_id, periodo, minuto nullable, asistidor_id nullable, equipo_id, origen)`. Admitir gol rival sin padrón individual y minuto opcional solo si el alcance aprobado no exige capturarlo. |
 | Disciplina | `tipos_sancion`, `sanciones(evento_id, alcance, cantidad)` y cumplimiento si la suspensión está en el lanzamiento. |
 | Entrenamientos | `entrenamientos(plantel_id, inicio, sede_id, estado)` y `asistencias(entrenamiento_id, inscripcion_id, estado)`, UNIQUE por sesión/inscripción. Permite dos sesiones el mismo día. |
 | Autorizaciones | `autorizaciones(convocatoria_id, responsable_id, version_texto, aceptado_en, documento_path)`; evidencia y archivo privado. No asumir que una imagen de firma constituye por sí sola un proceso válido para el colegio. |
-| Operación | `auditoria`, `importaciones`, `mapeo_legacy` y claves de idempotencia. Si hay notificaciones, bandeja de envíos con reintentos y deduplicación. |
+| Operación | `auditoria` y claves de idempotencia. No se requieren tablas de importaciones ni mapeos del MVP. Si hay notificaciones, bandeja de envíos con reintentos y deduplicación. |
 
 Para entidades editables: `created_at`, `updated_at`, actor y versión para detectar conflictos. Restringir borrados de datos históricos; desactivar catálogos y registrar correcciones. Indexar FK y filtros frecuentes; medir antes de agregar índices indiscriminadamente.
 
@@ -82,7 +84,6 @@ supabase/
   tests/
   functions/           # invitaciones, envíos y operaciones privilegiadas
   seed.sql             # únicamente datos ficticios
-scripts/import/        # extracción normalizada y conciliación
 tests/e2e/
 ```
 
@@ -122,11 +123,11 @@ npx supabase migration new convocatorias_eventos_y_asistencia
 npx supabase migration new permisos_y_operaciones
 ```
 
-Guardar versiones en lockfile. Escribir en esos archivos el esquema corregido. Cada tabla expuesta debe nacer con RLS y grants restrictivos; el último archivo completa políticas operativas y RPC. Mantener esquemas de importación y datos internos fuera de la API expuesta.
+Guardar versiones en lockfile. Escribir en esos archivos el esquema corregido. Cada tabla expuesta debe nacer con RLS y grants restrictivos; el último archivo completa políticas operativas y RPC. Mantener los datos internos fuera de la API expuesta.
 
 ### 3. Escribir restricciones y seeds
 
-Crear primero catálogos, luego jugadores/planteles, competición y tablas dependientes. Usar UUID para entidades y `legacy_id` o tabla de equivalencias para importar. Insertar deportes/categorías reales en una migración de catálogos; usar `seed.sql` para fixtures ficticios, no alumnos reales.
+Crear primero catálogos, luego jugadores/planteles, competición y tablas dependientes. Usar UUID para entidades; no crear `legacy_id` ni tablas de equivalencias. Insertar deportes/categorías reales en una migración de catálogos; usar `seed.sql` para fixtures ficticios, no alumnos reales.
 
 Ejemplos de restricciones a implementar: UNIQUE de resultado/partido y sesión/jugador; CHECK de marcador no negativo; FK del resultado hacia partido. Las reglas entre varias tablas necesitan claves compuestas o validación transaccional, no un CHECK que pretenda consultar otras filas.
 
@@ -134,7 +135,7 @@ Ejemplos de restricciones a implementar: UNIQUE de resultado/partido y sesión/j
 
 Configurar URL principal, redirects de staging/producción y recuperación de contraseña. Usar invitaciones a correos verificados como política inicial, con alta deportiva independiente del acceso. Si un alumno no tiene correo propio, mantener su ficha sin login y habilitar al responsable validado; no crear emails inventados.
 
-Vincular el UUID de Auth a `perfiles`; asignar el primer administrador por un procedimiento controlado del servidor. Ningún registro público puede autoasignarse profesor/admin. Desactivar la exposición pública del alta si no se necesita. Configurar SMTP propio y probar entrega, expiración y recuperación con cuentas de prueba. Los hashes del MVP no se reutilizan: los usuarios establecen nueva contraseña mediante invitación/recuperación.
+Vincular el UUID de Auth a `perfiles`; asignar el primer administrador por un procedimiento controlado del servidor. Ningún registro público puede autoasignarse profesor/admin. Desactivar la exposición pública del alta si no se necesita. Configurar SMTP propio y probar entrega, expiración y recuperación con cuentas de prueba. No se trasladan cuentas ni hashes del MVP: crear cuentas nuevas con invitaciones individuales cuando se dé de alta a los usuarios de producción.
 
 Supabase documenta la separación entre Auth y las tablas de perfiles: [gestión de usuarios](https://supabase.com/docs/guides/auth/managing-user-data).
 
@@ -152,7 +153,7 @@ RLS restringe filas; no basta para limitar columnas. Separar datos sensibles y u
 
 ### 6. Agregar transacciones y pruebas de base
 
-Implementar los contratos críticos anteriores y pruebas SQL de integridad, permisos y concurrencia. Casos obligatorios: alumno A intenta responder por B; profesor de fútbol modifica handball; responsable sin vínculo lee ficha; cliente intenta asignarse rol; doble cierre de partido; falla a mitad de corrección; segunda importación del mismo lote.
+Implementar los contratos críticos anteriores y pruebas SQL de integridad, permisos y concurrencia. Casos obligatorios: alumno A intenta responder por B; profesor de fútbol modifica handball; responsable sin vínculo lee ficha; cliente intenta asignarse rol; doble cierre de partido; falla a mitad de corrección; reintento del alta inicial sin duplicar jugadores o inscripciones.
 
 ```bash
 npx supabase db reset
@@ -178,25 +179,19 @@ npx supabase gen types typescript --linked > src/data/database.types.ts
 
 Crear previamente `src/data`. Autenticarse por el flujo de CLI, sin guardar tokens en Git. Revisar el proyecto vinculado antes de ejecutar cambios. Cargar fixtures y configurar Auth/SMTP/Storage por ambiente: las migraciones SQL no configuran automáticamente todos los servicios. Referencia: [gestión de ambientes](https://supabase.com/docs/guides/deployment/managing-environments).
 
-### 9. Migrar Sheets con conciliación
+### 9. Preparar una base nueva y su carga inicial
 
-Exportar todas las hojas con acceso autorizado y preservar un snapshot fechado. Inventariar cabeceras, tipos, filas, IDs duplicados y fechas. Nunca subir exportaciones con DNI/emails a Git.
+La decisión del responsable es no llevar registros del MVP a Supabase. No desarrollar ETL, importador, tablas de equivalencias ni conciliación con Sheets. Las migraciones SQL siguen siendo necesarias para versionar el esquema: no equivalen a importar datos antiguos.
 
-| Origen real esperado | Destino y tratamiento |
-|---|---|
-| `JUGADORES_GENERAL` | Jugadores y datos personales. DNI como texto normalizado, con conflictos separados para revisión. |
-| `USUARIOS` | Enlaces a fichas y futuras invitaciones; no hashes, salt ni token global. Verificar emails antes de invitar. |
-| `JUGADORES_DEPORTES` | Planteles e inscripciones por temporada; preservar equivalencia de IDJ. |
-| `PARTIDOS` | Equipos, partidos y resultados. Temporada desde fecha validada. Torneo desconocido queda sin asignación, no inventado. |
-| `CONVOCATORIAS` | Conservar por separado convocado, titular y confirmado. Sin evidencia, asistencia/participación quedan desconocidas. |
-| `ESTADISTICAS_PARTIDOS` | Un evento por fila de gol real. Minuto desconocido = NULL; goles rivales pueden existir solo como marcador agregado. |
-| `Asistencia` | Sesión por fecha/deporte/contexto recuperable y asistencias. Si faltan categoría u horario, registrar contexto histórico desconocido sin inventar sesiones. |
+1. Crear deportes, categorías, temporada, sedes y equipos iniciales con valores confirmados por el referente. No copiar automáticamente catálogos de la planilla.
+2. Crear la primera cuenta administradora por un procedimiento controlado; asignarle permisos explícitos. Dar de alta docentes e invitarlos individualmente.
+3. Cargar jugadores e inscripciones nuevas desde la aplicación. Un alumno puede tener ficha deportiva sin cuenta de acceso. No trasladar cuentas, hashes, goles, partidos ni asistencias del MVP.
+4. Usar únicamente fixtures ficticios en desarrollo/staging. Producción debe comenzar sin esos fixtures y sin registros del MVP.
+5. Verificar estados vacíos: sin entrenamientos no hay porcentaje de asistencia; sin partidos no hay promedio calculable. Mostrar “sin datos” y no 100% por defecto.
+6. Ejecutar un recorrido de aceptación con datos ficticios en staging. En producción, verificar catálogos, cuentas y permisos; identificar explícitamente cualquier registro creado para una prueba operativa.
+7. Mantener la planilla original como referencia, sin modificarla ni publicarla en Git. Los únicos datos de su relevamiento que se versionan son nombres de hojas, cabeceras y conteos agregados.
 
-Importar primero a staging privada. Normalizar `Si`/`Sí`/`No`/vacío; parsear fechas de manera explícita y convertir horarios usando la zona del colegio, propuesta `America/Argentina/Buenos_Aires`. Separar rechazos con motivo y fila de origen. Si hay IDs de partido ambiguos, resolver antes de vincular sus estadísticas. No deduplicar eventos solo por goleador/asistidor: un jugador puede marcar varios goles iguales.
-
-El importador debe ser idempotente por snapshot/hoja/fila y equivalencias, con informe de insertados, actualizados, rechazados y huérfanos. Conciliar jugadores únicos, inscripciones, convocatorias, asistencias, resultados, goles y asistencias por partido/jugador/deporte. Toda diferencia debe quedar resuelta o documentada con aceptación del responsable de datos.
-
-No imponer a datos históricos una precisión que nunca se capturó. Para encuentros nuevos, exigir reglas completas al cierre; para históricos, distinguir marcador agregado de eventos detallados.
+Criterio de aceptación: esquema reproducible, catálogos confirmados, administrador operativo, ausencia de fixtures en producción y alta nueva → convocatoria → partido → estadísticas validada en staging.
 
 ### 10. Conectar y validar la app
 
@@ -212,26 +207,26 @@ Verificar backups según el plan y ensayar restauración. Los backups de base no
 
 ### 12. Ejecutar el corte
 
-Anunciar ventana; detener escrituras del MVP; exportar snapshot final; importar y conciliar; ejecutar prueba breve en producción; habilitar acceso; mantener Sheets como archivo de consulta restringida. Evitar dos fuentes activas de escritura.
+Definir la fecha de inicio operativo y desde qué entrenamiento/partido se registran datos en Supabase. Preparar catálogos, administrador y altas nuevas; ejecutar prueba breve en producción; habilitar acceso. Acordar el retiro del MVP como herramienta operativa y conservar su planilla de referencia. No importar ni conciliar el histórico, ni borrar la planilla. Evitar dos sistemas activos para el mismo evento.
 
 Antes de admitir escrituras nuevas se puede volver al MVP restaurando su acceso. Después del corte, no volver sin reconciliar datos nuevos: detener escrituras, exportar lo producido desde el corte y aplicar el procedimiento de recuperación ensayado. Preferir corregir hacia adelante cuando sea seguro. Una reversión de frontend no implica revertir automáticamente la BD.
 
 ## Hitos de ejecución
 
-Estimaciones orientativas para un desarrollador full stack con disponibilidad sostenida, referente docente y apoyo de QA/operación. No son un compromiso de calendario; se ajustan luego del inventario de datos. Dependencia secuencial H0 → H1 → H2 → H3 → H4 → H5 → H6 → H7.
+Estimaciones orientativas para un desarrollador full stack con disponibilidad sostenida, referente docente y apoyo de QA/operación. No son un compromiso de calendario; se ajustan luego de confirmar alcance, reglas y disponibilidad del equipo. Dependencia secuencial H0 → H1 → H2 → H3 → H4 → H5 → H6 → H7.
 
 | Hito | Esfuerzo estimado | Entregable | Criterio para cerrar |
 |---|---|---|---|
-| H0: alcance y datos | 2–3 días | Matriz de paridad del MVP, datos inventariados, reglas de categorías y permisos | Responsable docente confirma ejemplos y qué funcionalidades documentadas son obligatorias para salir. |
+| H0: alcance y reglas | 2–3 días | Matriz de paridad, estructura de referencia verificada, arranque sin histórico y reglas de categorías/permisos | Responsable docente confirma ejemplos y qué funcionalidades documentadas son obligatorias para salir. |
 | H1: base y seguridad | 4–6 días | Modelo PostgreSQL, migraciones, Auth, RLS y ambientes | Base reproducible desde cero; todas las pruebas de acceso permitido/denegado pasan. |
 | H2: núcleo operativo | 5–8 días | Sesión, jugadores, planteles, asistencia y catálogos | Un profesor gestiona su plantel sin depender de la activación de alumnos; sin altas parciales. |
 | H3: ciclo de partido | 5–8 días | Partidos, convocatorias, respuestas, titularidad, eventos y cierre | Flujo completo en dos deportes; concurrencia, reintentos y correcciones no pierden ni duplican datos. |
-| H4: reportes y migración | 4–6 días | Dashboards por temporada, importador, conciliación e histórico | Totales coinciden con origen o diferencias documentadas; importación repetida no duplica. |
+| H4: reportes y carga inicial | 2–4 días | Dashboards por temporada, estados vacíos, catálogos iniciales y alta nueva | Totales coinciden con fixtures de prueba; producción sin registros del MVP ni fixtures. |
 | H5: piloto | 5–10 días calendario | Uso por docentes y alumnos representativos en entrenamientos y partidos reales | Cero defectos críticos/altos abiertos; flujo móvil y conexión real validados. |
-| H6: producción | 2–3 días | Dominio, monitoreo, recuperación, manuales y corte | Restauración ensayada, datos finales conciliados, cuentas y permisos verificados. |
+| H6: producción | 2–3 días | Dominio, monitoreo, recuperación, manuales y corte | Restauración ensayada, catálogos y altas iniciales verificados, cuentas y permisos correctos. |
 | H7: estabilización | 5 días calendario | Seguimiento diario, correcciones y transferencia operativa | Sin incidentes críticos pendientes; responsable puede administrar usuarios y atender incidencias. |
 
-Orden de magnitud: 7–10 semanas calendario con esa disponibilidad y alcance central, incluyendo piloto y estabilización. Si el equipo trabaja por horas de taller, recalcular por capacidad efectiva. Autorizaciones completas, sanciones con cumplimiento, boletín exportable y offline completo pueden extenderlo; no asumir que están implementados porque aparecen en la propuesta.
+Orden de magnitud conservador: 7–10 semanas calendario con esa disponibilidad y alcance central, incluyendo piloto y estabilización. Se retira la migración del histórico y H4 baja de 4–6 a 2–4 días de esfuerzo; ajustar el calendario completo al cerrar H0, sin prometer una fecha antes de resolver el alcance. Si el equipo trabaja por horas de taller, recalcular por capacidad efectiva. Autorizaciones completas, sanciones con cumplimiento, boletín exportable y offline completo pueden extenderlo; no asumir que están implementados porque aparecen en la propuesta.
 
 Backlog obligatorio a clasificar en H0: ABM completo de jugadores (el código revisado muestra alta, no un ABM completo), baja deportiva, recuperación de cuenta, roles, transporte, autorizaciones, sanciones, cambios, destacado, exportación y notificaciones. Para cada uno: obligatorio en primera producción o fase posterior explícita. La paridad del MVP aprobado es el piso, no una excusa para omitir funcionalidades ya comprometidas.
 
@@ -239,10 +234,10 @@ Backlog obligatorio a clasificar en H0: ABM completo de jugadores (el código re
 
 - Funcionales: todos los recorridos obligatorios pasan en móvil; fechas, categorías, resultados e históricos tienen significado validado por el docente.
 - Seguridad: ninguna operación permite acceso cruzado; no hay secretos en frontend/repositorio; roles no son autoeditables; el backend legado deja de admitir escrituras al finalizar el corte.
-- Datos: cero huérfanos y duplicados no explicados; conciliación aceptada; cuentas separadas de fichas deportivas.
+- Datos: cero huérfanos y duplicados; catálogos confirmados; producción sin datos del MVP ni fixtures; cuentas separadas de fichas deportivas.
 - Robustez: doble clic, reconexión, sesión vencida y edición simultánea tienen resultados previsibles; nunca se muestra “guardado” ante una falla.
 - Rendimiento: medir en red representativa y con al menos el doble del pico concurrente observado. Objetivo inicial propuesto: p95 menor a 2 segundos para operaciones comunes, excluyendo reportes pesados; ajustar en H0 con volumen real.
-- Operación: alertas de errores de app, RPC fallidas, correo e importación; logs sin DNI ni credenciales; recuperación y contacto de soporte documentados.
+- Operación: alertas de errores de app, RPC fallidas y correo; logs sin DNI ni credenciales; recuperación y contacto de soporte documentados.
 - Adopción: administrador y docente pueden ejecutar tareas habituales con una guía breve; mensajes de invitación y primer ingreso probados antes de enviarlos a la comunidad.
 
 La próxima unidad ejecutable es H0 y luego H1: convertir el modelo corregido en migraciones completas y pruebas RLS. No hace falta cambiar las pantallas para empezar ese trabajo.
