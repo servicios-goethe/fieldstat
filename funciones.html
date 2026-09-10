@@ -1,0 +1,824 @@
+<script>
+  let jugadoresActuales = [];
+  let deporteSeleccionadoIDD = '';
+  let estadoActualFiltro = 'Pendiente';
+  let dniJugadorActual = '';
+
+  // ─────────────────────────────────────────────
+  // Estados del nuevo dashboard (jugador)
+  // ─────────────────────────────────────────────
+  let jugadorTabActual = 'partidos';          // 'partidos' | 'tabla'
+  let jugadorEstadoActual = 'Finalizado';     // 'Finalizado' | 'Pendiente'
+
+  // ─────────────────────────────────────────────
+  // Estados del nuevo dashboard (profesor)
+  // ─────────────────────────────────────────────
+  let profeTabActual = 'partidos';            // 'partidos' | 'tabla' | 'jugadores'
+  let profeEstadoActual = 'Finalizado';       // 'Finalizado' | 'Pendiente'
+
+  // ─────────────────────────────────────────────
+  // UTILIDADES GENERALES
+  // ─────────────────────────────────────────────
+
+  function navigateTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function showLoading(show) {
+    document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+  }
+
+  function togglePassword(inputId) {
+    const i = document.getElementById(inputId);
+    i.type = i.type === "password" ? "text" : "password";
+  }
+
+  function toggleCamisetaInput(depID) {
+    document.getElementById(`input-camiseta-${depID}`).style.display =
+      document.getElementById(`reg-${depID.toLowerCase()}`).checked ? 'block' : 'none';
+  }
+
+  // ─────────────────────────────────────────────
+  // GESTIÓN DE FILTROS (convocatoria y datos)
+  // ─────────────────────────────────────────────
+
+  function setEstadoFiltro(modulo, estado) {
+    estadoActualFiltro = estado;
+    document.querySelectorAll(`.toggle-group div`).forEach(el => {
+      if (el.id.includes(modulo)) el.classList.remove('active');
+    });
+    const idToggle = `toggle-${modulo}-${estado.toLowerCase() === 'pendiente' ? 'pendientes' : 'finalizados'}`;
+    const toggleEl = document.getElementById(idToggle);
+    if (toggleEl) toggleEl.classList.add('active');
+
+    if (modulo === 'conv') {
+      document.getElementById('convocatoria-list').innerHTML = '';
+      document.getElementById('select-partido-convocar').innerHTML = '<option value="">Cargando...</option>';
+      abrirMenuConvocatoria();
+    }
+    if (modulo === 'datos') {
+      document.getElementById('wizard-zona').style.display = 'none';
+      document.getElementById('select-partido-datos').innerHTML = '<option value="">Cargando...</option>';
+      abrirCargaDatosPartido();
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // LOGIN Y REGISTROS
+  // ─────────────────────────────────────────────
+
+  function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    if (!user || !pass) return alert("Por favor completa los campos");
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) {
+        if (r.role === 'jugador') {
+          dniJugadorActual = r.dni;
+          // Ir directo al dashboard del jugador y cargar datos iniciales
+          navigateTo('screen-jugador');
+        } else if (r.role === 'externo') {
+          navigateTo('screen-externo');
+        } else {
+          navigateTo('screen-admin');
+        }
+      } else {
+        alert(r.msg);
+      }
+    }).verificarLogin(user, pass);
+  }
+
+  function crearCuentaJugador() {
+    const d = document.getElementById('reg-jugador-dni').value;
+    const t = document.getElementById('reg-jugador-token').value;
+    const p = document.getElementById('reg-jugador-pass').value;
+    if (!d || !t || !p) return alert("Completa todos los campos");
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert("¡Activada!"); navigateTo('screen-login'); } else alert(r.msg);
+    }).registrarCuentaJugador(d, t, p);
+  }
+
+  function crearCuentaExterno() {
+    const e = document.getElementById('reg-ext-email').value;
+    const p = document.getElementById('reg-ext-pass').value;
+    if (!e || !p) return alert("Completa todos los campos");
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert("¡Registro exitoso! Revisa tu email."); navigateTo('screen-login'); } else alert(r.msg);
+    }).registrarExterno(e, p);
+  }
+
+  function guardarNuevoJugador() {
+    const d = {
+      nombre: document.getElementById('reg-nombre').value,
+      apellido: document.getElementById('reg-apellido').value,
+      dni: document.getElementById('reg-dni').value,
+      email: document.getElementById('reg-email').value,
+      fnac: document.getElementById('reg-fnac').value,
+      deportes: [], camisetas: {}
+    };
+    if (document.getElementById('reg-dep1').checked) { d.deportes.push('DEP1'); d.camisetas['DEP1'] = document.getElementById('camiseta-DEP1').value; }
+    if (document.getElementById('reg-dep2').checked) { d.deportes.push('DEP2'); d.camisetas['DEP2'] = document.getElementById('camiseta-DEP2').value; }
+    if (!d.nombre || !d.dni || d.deportes.length === 0) return alert("Faltan datos obligatorios.");
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert(r.msg || "¡Operación exitosa!"); navigateTo('screen-admin'); } else alert(r.msg);
+    }).registrarJugadorBackend(d);
+  }
+
+  function crearPartidos() {
+    const datos = {
+      visitante: document.getElementById('partido-visita').value,
+      fecha: document.getElementById('partido-fecha').value,
+      hora: document.getElementById('partido-hora').value,
+      deporte: document.getElementById('selector-deporte').value,
+      categorias: Array.from(document.querySelectorAll('.cat-check:checked')).map(cb => cb.value)
+    };
+    if (!datos.visitante || !datos.fecha || datos.categorias.length === 0) return alert("Faltan datos para el partido.");
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert("Partidos agendados correctamente."); navigateTo('screen-partidos-menu'); } else alert(r.msg);
+    }).crearPartidosBD(datos);
+  }
+
+  // ─────────────────────────────────────────────
+  // ASISTENCIA
+  // ─────────────────────────────────────────────
+
+  function iniciarTomaAsistencia() {
+    deporteSeleccionadoIDD = document.getElementById('selector-deporte').value;
+    showLoading(true);
+    google.script.run.withSuccessHandler(j => {
+      showLoading(false);
+      jugadoresActuales = j;
+      const c = document.getElementById('asistencia-list');
+      c.innerHTML = '';
+      if (j.length === 0) { c.innerHTML = '<p>No hay jugadores ACTIVADOS.</p>'; }
+      else {
+        j.forEach((jug, i) => {
+          c.innerHTML += `<div class="player-row"><span>${jug.nombreCompleto}</span><label class="toggle-switch"><input type="checkbox" id="check-asis-${i}" checked><span class="slider"></span></label></div>`;
+        });
+      }
+      navigateTo('screen-asistencia');
+    }).obtenerJugadores(deporteSeleccionadoIDD);
+  }
+
+  function guardarAsistencia() {
+    const d = jugadoresActuales.map((j, i) => ({ id: j.id, idd: j.idd, nombreCompleto: j.nombreCompleto, presente: document.getElementById(`check-asis-${i}`).checked }));
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert("¡Guardado!"); navigateTo('screen-admin'); } else alert(r.msg);
+    }).guardarAsistenciaBD(d, deporteSeleccionadoIDD);
+  }
+
+  // ─────────────────────────────────────────────
+  // CONVOCATORIAS Y WIZARD GOLES (igual que antes)
+  // ─────────────────────────────────────────────
+
+  function onCambioDeporteAdmin() { /* futuro: refrescar lo que sea necesario en el panel */ }
+
+  function abrirMenuConvocatoria() {
+    const selectorDep = document.getElementById('selector-deporte');
+    const dep = selectorDep.value;
+    const nombreDep = selectorDep.options[selectorDep.selectedIndex].text;
+    document.getElementById('header-deporte-convocar').innerText = nombreDep;
+    document.getElementById('convocatoria-list').innerHTML = '';
+    showLoading(true);
+    google.script.run.withSuccessHandler(partidos => {
+      showLoading(false);
+      let select = document.getElementById('select-partido-convocar');
+      select.innerHTML = '<option value="">Elige un partido...</option>';
+      if (partidos.length === 0) {
+        select.innerHTML = `<option value="">No hay partidos ${estadoActualFiltro.toLowerCase()}s</option>`;
+      }
+      partidos.forEach(p => { select.innerHTML += `<option value="${p.idp}">${p.label}</option>`; });
+      document.getElementById('btn-guardar-plantel').style.display = (estadoActualFiltro === 'Pendiente') ? 'block' : 'none';
+      document.getElementById('btn-ver-plantel').style.display = (estadoActualFiltro === 'Finalizado') ? 'block' : 'none';
+      navigateTo('screen-convocar');
+    }).obtenerPartidosFiltrados(dep, estadoActualFiltro);
+  }
+
+  function actualizarDotConvocado(i) {
+    const isConvocado = document.getElementById(`conv-${i}`).checked;
+    const dot = document.getElementById(`dot-${i}`);
+    if (!dot) return;
+    if (!isConvocado) { dot.style.backgroundColor = '#555555'; }
+    else {
+      const confirmado = jugadoresActuales[i].confirmado || '';
+      if (confirmado === 'Si') dot.style.backgroundColor = '#10b981';
+      else if (confirmado === 'No') dot.style.backgroundColor = '#ef4444';
+      else dot.style.backgroundColor = '#ffffff';
+    }
+  }
+
+  function cargarListaConvocatoria() {
+    const idp = document.getElementById('select-partido-convocar').value;
+    if (!idp || estadoActualFiltro === 'Finalizado') return;
+    showLoading(true);
+    google.script.run.withSuccessHandler(jugs => {
+      showLoading(false);
+      jugadoresActuales = jugs;
+      const c = document.getElementById('convocatoria-list');
+      c.innerHTML = '';
+      jugs.forEach((j, i) => {
+        let dotColor = '#ffffff';
+        if (!j.convocado) dotColor = '#555555';
+        else if (j.confirmado === 'Si') dotColor = '#10b981';
+        else if (j.confirmado === 'No') dotColor = '#ef4444';
+        c.innerHTML += `
+          <div class="player-row" style="flex-direction:column; align-items:flex-start; border-bottom:1px solid #333; padding:12px 0;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-bottom:8px;">
+              <span style="font-weight:bold; font-size:16px;">${j.nombreCompleto}</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:12px; color:#aaa;">Confirmación:</span>
+                <span id="dot-${i}" style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:${dotColor}; border:1px solid #555;"></span>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:100%">
+              <div style="display:flex; align-items:center; gap:8px">
+                <label style="font-size:13px; margin-bottom:0; color:#aaa">Convocado</label>
+                <label class="toggle-switch"><input type="checkbox" id="conv-${i}" ${j.convocado ? 'checked' : ''} onchange="actualizarDotConvocado(${i})"><span class="slider"></span></label>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px">
+                <label style="font-size:13px; margin-bottom:0; color:#aaa">Titular</label>
+                <label class="toggle-switch"><input type="checkbox" id="tit-${i}" ${j.titular ? 'checked' : ''}><span class="slider"></span></label>
+              </div>
+            </div>
+          </div>`;
+      });
+    }).obtenerJugadoresParaConvocatoria(idp);
+  }
+
+  function verPlantelLectura() {
+    const idp = document.getElementById('select-partido-convocar').value;
+    if (!idp) return alert("Selecciona un partido");
+    showLoading(true);
+    google.script.run.withSuccessHandler(plantel => {
+      showLoading(false);
+      let html = '<div style="background:#1e293b; padding:15px; border-radius:10px; margin-top:10px;">';
+      html += '<h3 style="color:var(--primary); margin-top:0">Plantel Utilizado</h3>';
+      if (plantel.length === 0) html += '<p>No se encontró registro de plantel.</p>';
+      plantel.forEach(j => {
+        html += `<p style="margin:8px 0; display:flex; align-items:center; gap:10px;"><span>${j.titular ? '⭐' : '🏃'}</span><span>${j.nombre}</span></p>`;
+      });
+      html += '</div>';
+      document.getElementById('convocatoria-list').innerHTML = html;
+    }).obtenerPlantelConfirmado(idp);
+  }
+
+  function guardarConvocatoria() {
+    const idp = document.getElementById('select-partido-convocar').value;
+    if (!idp) return;
+    const d = jugadoresActuales.map((j, i) => ({
+      id: j.id, convocado: document.getElementById(`conv-${i}`).checked, titular: document.getElementById(`tit-${i}`).checked
+    }));
+    showLoading(true);
+    google.script.run.withSuccessHandler(r => {
+      showLoading(false);
+      if (r.success) { alert("Plantel guardado."); navigateTo('screen-admin'); } else alert(r.msg);
+    }).guardarConvocatoriaBD(idp, d);
+  }
+
+  // ─────────────────────────────────────────────
+  // MIS CONVOCATORIAS (JUGADOR)
+  // ─────────────────────────────────────────────
+
+  let convocatoriasJugador = [];
+  let convocatoriasSportFiltro = 'DEP1';
+
+  function iniciarMisConvocatorias() {
+    if (!dniJugadorActual) { alert("Error: DNI no detectado. Vuelve a iniciar sesión."); navigateTo('screen-login'); return; }
+    showLoading(true);
+    google.script.run.withSuccessHandler(convs => {
+      showLoading(false);
+      convocatoriasJugador = convs;
+      
+      // Inicializar el filtro de deporte en Fútbol (DEP1) por defecto
+      convocatoriasSportFiltro = 'DEP1';
+      document.getElementById('conv-toggle-dep1').classList.add('active');
+      document.getElementById('conv-toggle-dep2').classList.remove('active');
+      
+      renderMisConvocatorias();
+      navigateTo('screen-mis-convocatorias');
+    }).obtenerMisConvocatorias(dniJugadorActual);
+  }
+
+  function filtrarDeporteConvocatorias(sportId) {
+    convocatoriasSportFiltro = sportId;
+    document.getElementById('conv-toggle-dep1').classList.toggle('active', sportId === 'DEP1');
+    document.getElementById('conv-toggle-dep2').classList.toggle('active', sportId === 'DEP2');
+    renderMisConvocatorias();
+  }
+
+  function renderMisConvocatorias() {
+    const c = document.getElementById('mis-convocatorias-list');
+    c.innerHTML = '';
+    
+    // Filtrar los que pertenecen al deporte seleccionado
+    const filtrados = convocatoriasJugador.filter(conv => conv.deporte === convocatoriasSportFiltro);
+    
+    if (filtrados.length === 0) {
+      c.innerHTML = '<p style="text-align:center; color:#aaa; margin-top:20px;">No tienes convocatorias pendientes para este deporte.</p>';
+    } else {
+      convocatoriasJugador.forEach((conv, originalIndex) => {
+        if (conv.deporte !== convocatoriasSportFiltro) return;
+        
+        let dotColor = '#ffffff', statusText = 'Sin confirmar';
+        if (conv.confirmado === 'Si') { dotColor = '#10b981'; statusText = 'Confirmado (Asisto)'; }
+        else if (conv.confirmado === 'No') { dotColor = '#ef4444'; statusText = 'Confirmado (No Asisto)'; }
+        
+        c.innerHTML += `
+          <div class="action-card" style="cursor:default; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-weight:bold; font-size:15px; color:var(--primary);">${conv.titular ? '⭐ Titular' : '🏃 Suplente'}</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span id="player-dot-${originalIndex}" style="display:inline-block; width:12px; height:12px; border-radius:50%; background-color:${dotColor}; border:1px solid #555;"></span>
+                <span id="player-status-text-${originalIndex}" style="font-size:12px; color:#aaa; font-style:italic;">${statusText}</span>
+              </div>
+            </div>
+            <h3 style="font-size:16px; margin-bottom:12px; word-break:break-word;">${conv.label}</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid #333;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:13px; color:#ccc;">¿Asistes?</span>
+                <label class="toggle-switch"><input type="checkbox" id="asis-toggle-${originalIndex}" ${conv.confirmado === 'Si' ? 'checked' : ''}><span class="slider"></span></label>
+              </div>
+              <button class="btn btn-primary" style="width:auto; padding:6px 16px; font-size:13px; border-radius:6px;" onclick="guardarConfirmacionJugador('${conv.idp}', ${originalIndex})">Confirmar</button>
+            </div>
+          </div>`;
+      });
+    }
+  }
+
+  function guardarConfirmacionJugador(idp, index) {
+    const asiste = document.getElementById(`asis-toggle-${index}`).checked;
+    showLoading(true);
+    google.script.run.withSuccessHandler(res => {
+      showLoading(false);
+      if (res.success) {
+        alert("¡Asistencia confirmada!");
+        convocatoriasJugador[index].confirmado = asiste ? 'Si' : 'No';
+        const dot = document.getElementById(`player-dot-${index}`);
+        const txt = document.getElementById(`player-status-text-${index}`);
+        if (dot && txt) {
+          dot.style.backgroundColor = asiste ? '#10b981' : '#ef4444';
+          txt.innerText = asiste ? 'Confirmado (Asisto)' : 'Confirmado (No Asisto)';
+        }
+      } else { alert("Error al confirmar: " + res.msg); }
+    }).responderConvocatoria(idp, dniJugadorActual, asiste);
+  }
+
+  // ─────────────────────────────────────────────
+  // DASHBOARD GENERAL (JUGADOR)
+  // ─────────────────────────────────────────────
+
+  function iniciarDashboardGeneralJugador() {
+    navigateTo('screen-dashboard-general-jugador');
+    jugadorCargarContenido();
+  }
+
+  // ─────────────────────────────────────────────
+  // WIZARD DE GOLES
+  // ─────────────────────────────────────────────
+
+  let marcadorGoethe = 0, marcadorRival = 0, golesLog = [];
+
+  function abrirCargaDatosPartido() {
+    const dep = document.getElementById('selector-deporte').value;
+    const nombreDep = document.getElementById('selector-deporte').options[document.getElementById('selector-deporte').selectedIndex].text;
+    document.getElementById('header-deporte-datos').innerText = nombreDep;
+    document.getElementById('wizard-zona').style.display = 'none';
+    showLoading(true);
+    google.script.run.withSuccessHandler(partidos => {
+      showLoading(false);
+      let select = document.getElementById('select-partido-datos');
+      select.innerHTML = '<option value="">Elige un partido...</option>';
+      partidos.forEach(p => { select.innerHTML += `<option value="${p.idp}">${p.label}</option>`; });
+      navigateTo('screen-cargar-datos');
+    }).obtenerPartidosFiltrados(dep, estadoActualFiltro);
+  }
+
+  function iniciarWizardPartido() {
+    const idp = document.getElementById('select-partido-datos').value;
+    if (!idp) return;
+    marcadorGoethe = 0; marcadorRival = 0; golesLog = [];
+    document.getElementById('marcador-goethe').innerText = "0";
+    document.getElementById('marcador-rival').innerText = "0";
+    document.getElementById('historial-goles').innerHTML = "";
+    document.getElementById('wizard-zona').style.display = 'block';
+    document.getElementById('info-edicion').style.display = (estadoActualFiltro === 'Finalizado') ? 'block' : 'none';
+    showLoading(true);
+    google.script.run.withSuccessHandler(jugadores => {
+      showLoading(false);
+      jugadoresActuales = jugadores.filter(j => j.convocado);
+      const selG = document.getElementById('select-goleador');
+      const selA = document.getElementById('select-asistidor');
+      selG.innerHTML = '<option value="">Selecciona Goleador</option>';
+      selA.innerHTML = '<option value="">Sin asistencia</option>';
+      jugadoresActuales.forEach(j => {
+        selG.innerHTML += `<option value="${j.id}">${j.nombreCompleto}</option>`;
+        selA.innerHTML += `<option value="${j.id}">${j.nombreCompleto}</option>`;
+      });
+    }).obtenerJugadoresParaConvocatoria(idp);
+  }
+
+  function anotarGolRival() {
+    marcadorRival++;
+    document.getElementById('historial-goles').innerHTML += `<li>⚽ Gol Rival</li>`;
+    document.getElementById('marcador-rival').innerText = marcadorRival;
+  }
+
+  function abrirModalGol() { document.getElementById('modal-goles').style.display = 'flex'; }
+  function cerrarModal() { document.getElementById('modal-goles').style.display = 'none'; }
+
+  function confirmarGolModal() {
+    const idGoleador = document.getElementById('select-goleador').value;
+    if (!idGoleador) return alert("Selecciona quién metió el gol");
+    const nombreGoleador = document.getElementById('select-goleador').options[document.getElementById('select-goleador').selectedIndex].text;
+    const idAsistidor = document.getElementById('select-asistidor').value;
+    let txt = `⚽ Gol de ${nombreGoleador}`;
+    if (idAsistidor) {
+      const nombreAsis = document.getElementById('select-asistidor').options[document.getElementById('select-asistidor').selectedIndex].text;
+      txt += ` (Asis: ${nombreAsis})`;
+    }
+    marcadorGoethe++;
+    golesLog.push({ idGoleador, idAsistidor });
+    document.getElementById('historial-goles').innerHTML += `<li><span style="color:var(--success)">${txt}</span></li>`;
+    document.getElementById('marcador-goethe').innerText = marcadorGoethe;
+    cerrarModal();
+  }
+
+  function finalizarPartido() {
+    const idp = document.getElementById('select-partido-datos').value;
+    if (!idp) return;
+    if (!confirm("¿Deseas guardar los resultados finales?")) return;
+    showLoading(true);
+    if (estadoActualFiltro === 'Finalizado') {
+      google.script.run.withSuccessHandler(() => { ejecutarGuardadoFinal(idp); }).resetearEstadisticasPartido(idp);
+    } else { ejecutarGuardadoFinal(idp); }
+  }
+
+  function ejecutarGuardadoFinal(idp) {
+    google.script.run.withSuccessHandler(res => {
+      showLoading(false);
+      if (res.success) { alert("¡Guardado!"); navigateTo('screen-admin'); } else alert(res.msg);
+    }).guardarPartidoFinalizadoBD(idp, marcadorGoethe, marcadorRival, golesLog);
+  }
+
+  // ─────────────────────────────────────────────
+  // MIS ESTADÍSTICAS (JUGADOR — sin cambios)
+  // ─────────────────────────────────────────────
+
+  let datosEstadisticasJugador = null;
+
+  function iniciarMisEstadisticas() {
+    if (!dniJugadorActual) { alert("Error: DNI no detectado. Vuelve a iniciar sesión."); navigateTo('screen-login'); return; }
+    showLoading(true);
+    google.script.run.withSuccessHandler(res => {
+      showLoading(false);
+      if (res.success) {
+        datosEstadisticasJugador = res.data;
+        const toggleWrapper = document.getElementById('wrapper-toggle-deportes-stats');
+        toggleWrapper.innerHTML = '';
+        if (datosEstadisticasJugador.sports.length > 1) {
+          datosEstadisticasJugador.sports.forEach((sportId, idx) => {
+            const label = datosEstadisticasJugador.stats[sportId].deporteLabel;
+            const activeClass = idx === 0 ? 'active' : '';
+            toggleWrapper.innerHTML += `<div id="toggle-stat-${sportId}" class="toggle-option ${activeClass}" onclick="seleccionarDeporteEstadisticas('${sportId}')">${label}</div>`;
+          });
+          toggleWrapper.style.display = 'flex';
+        } else { toggleWrapper.style.display = 'none'; }
+        renderEstadisticas(datosEstadisticasJugador.sports[0]);
+        navigateTo('screen-mis-estadisticas');
+      } else { alert(res.msg || "No se pudieron obtener tus estadísticas."); }
+    }).obtenerEstadisticasJugadorCompleto(dniJugadorActual);
+  }
+
+  function seleccionarDeporteEstadisticas(sportId) {
+    document.querySelectorAll('#wrapper-toggle-deportes-stats .toggle-option').forEach(el => el.classList.remove('active'));
+    const selectedToggle = document.getElementById(`toggle-stat-${sportId}`);
+    if (selectedToggle) selectedToggle.classList.add('active');
+    renderEstadisticas(sportId);
+  }
+
+  function renderEstadisticas(sportId) {
+    if (!datosEstadisticasJugador || !datosEstadisticasJugador.stats[sportId]) return;
+    const stats = datosEstadisticasJugador.stats[sportId];
+    document.getElementById('stats-deporte-subtitle').innerText = `Historial y rendimiento personal - ${stats.deporteLabel} (${stats.categoria})`;
+    const container = document.getElementById('stats-dinamicas-container');
+    const svgPartidos = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="10"></circle><path d="m12 2-3 4H7l-3 3v3l3 3h2l3 4 3-4h2l3-3v-3l-3-3h-2Z"></path></svg>`;
+    const svgGoles = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
+    const svgAsist = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
+    const svgPG = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;
+    const svgPA = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg>`;
+    const svgRun = `<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><circle cx="17" cy="5" r="1"></circle><path d="M12 11h2L11 6 8.5 9.5 9 12"></path></svg>`;
+    container.innerHTML = `
+      <div class="stat-card-premium">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div class="stat-icon-wrapper blue">${svgPartidos}</div>
+          <h4 style="font-size:14px;font-weight:600;color:#a0aec0;margin:0;">Partidos Jugados</h4>
+        </div>
+        <div class="stat-card-value" style="font-size:36px;">${stats.partidosJugados} <span style="font-size:16px;font-weight:500;color:#718096;margin-left:4px;">partidos</span></div>
+      </div>
+      <div class="stats-grid-2col">
+        <div class="stat-card-premium" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="stat-icon-wrapper orange">${svgGoles}</div><h4 style="font-size:13px;font-weight:600;color:#a0aec0;margin:0;">Goles</h4></div>
+          <div class="stat-card-value">${stats.goles}</div>
+        </div>
+        <div class="stat-card-premium" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="stat-icon-wrapper green">${svgAsist}</div><h4 style="font-size:13px;font-weight:600;color:#a0aec0;margin:0;">Asistencias</h4></div>
+          <div class="stat-card-value">${stats.asistencias}</div>
+        </div>
+      </div>
+      <div class="stats-grid-2col">
+        <div class="stat-card-premium" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="stat-icon-wrapper purple">${svgPG}</div><h4 style="font-size:12px;font-weight:600;color:#a0aec0;margin:0;line-height:1.2;">Prom. Goles / Partido</h4></div>
+          <div class="stat-card-value" style="font-size:28px;">${stats.promedioGoles}</div>
+        </div>
+        <div class="stat-card-premium" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><div class="stat-icon-wrapper yellow">${svgPA}</div><h4 style="font-size:12px;font-weight:600;color:#a0aec0;margin:0;line-height:1.2;">Prom. Asist. / Partido</h4></div>
+          <div class="stat-card-value" style="font-size:28px;">${stats.promedioAsistencias}</div>
+        </div>
+      </div>
+      <div class="stat-card-premium" style="margin-top:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;"><div class="stat-icon-wrapper blue">${svgRun}</div><h3 style="font-size:16px;font-weight:600;margin:0;color:#ffffff;">Compromiso y Presencia</h3></div>
+        <div style="margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;margin-bottom:8px;"><span style="color:#cbd5e1;">Convocatorias</span><span style="color:#3b82f6;font-weight:600;">${stats.convocatoriasPorcentaje}%</span></div>
+          ${generarBloquesProgreso(stats.convocatoriasPorcentaje)}
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;margin-bottom:8px;"><span style="color:#cbd5e1;">Asistencia a Clases</span><span style="color:#3b82f6;font-weight:600;">${stats.asistenciaClasesPorcentaje}%</span></div>
+          ${generarBloquesProgreso(stats.asistenciaClasesPorcentaje)}
+        </div>
+      </div>
+      <div class="stats-footer-info">
+        <span style="font-size:14px;color:#718096;position:relative;top:-1px;">ⓘ</span>
+        <span>Las estadísticas se actualizan después de cada partido.</span>
+      </div>`;
+  }
+
+  function generarBloquesProgreso(porcentaje) {
+    const totalBloques = 18;
+    const activeBloques = Math.round((porcentaje / 100) * totalBloques);
+    let html = '<div class="progress-blocks-container">';
+    for (let i = 0; i < totalBloques; i++) html += `<span class="progress-block ${i < activeBloques ? 'active' : ''}"></span>`;
+    html += '</div>';
+    return html;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  //   NUEVO DASHBOARD JUGADOR  —  Fixture + Tabla (SIN tabla de jugadores)
+  //
+  // ═══════════════════════════════════════════════════════════════════════
+
+  function onCambioDeporteJugador() { jugadorCargarContenido(); }
+
+  function jugadorSwitchTab(tab) {
+    jugadorTabActual = tab;
+    document.getElementById('jugador-tab-partidos').classList.toggle('active', tab === 'partidos');
+    document.getElementById('jugador-tab-tabla').classList.toggle('active', tab === 'tabla');
+
+    // Sub-toggle de estado sólo visible en Partidos
+    document.getElementById('jugador-partidos-subtoggle').style.display = tab === 'partidos' ? 'flex' : 'none';
+
+    jugadorCargarContenido();
+  }
+
+  function jugadorSwitchEstado(estado) {
+    jugadorEstadoActual = estado;
+    document.getElementById('jugador-tog-disputados').classList.toggle('active', estado === 'Finalizado');
+    document.getElementById('jugador-tog-pendientes').classList.toggle('active', estado === 'Pendiente');
+    jugadorCargarContenido();
+  }
+
+  function jugadorRecargar() { jugadorCargarContenido(); }
+
+  function jugadorCargarContenido() {
+    const dep = document.getElementById('jugador-selector-deporte').value;
+    const cat = document.getElementById('jugador-selector-cat').value;
+    const area = document.getElementById('jugador-content-area');
+    area.innerHTML = '<p style="color:#aaa;text-align:center;margin:20px 0;">Cargando...</p>';
+    showLoading(true);
+
+    if (jugadorTabActual === 'partidos') {
+      google.script.run.withSuccessHandler(partidos => {
+        showLoading(false);
+        area.innerHTML = renderPartidosList(partidos, jugadorEstadoActual, false);
+      }).obtenerPartidosDashboard(dep, cat, jugadorEstadoActual);
+
+    } else {
+      // Tab tabla
+      google.script.run.withSuccessHandler(tabla => {
+        showLoading(false);
+        area.innerHTML = renderTablaPosiciones(tabla);
+      }).obtenerTablaPosiciones(dep, cat);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  //   NUEVO DASHBOARD PROFESOR — Fixture + Tabla + Ranking Jugadores
+  //
+  // ═══════════════════════════════════════════════════════════════════════
+
+  function abrirDashboardProfesor() {
+    const dep = document.getElementById('selector-deporte').value;
+    const nombreDep = document.getElementById('selector-deporte').options[document.getElementById('selector-deporte').selectedIndex].text;
+    document.getElementById('profe-stats-deporte-label').innerText = nombreDep;
+    profeTabActual = 'partidos';
+    profeEstadoActual = 'Finalizado';
+    // Resetear tabs UI
+    ['partidos', 'tabla', 'jugadores'].forEach(t => document.getElementById(`profe-tab-${t}`).classList.toggle('active', t === 'partidos'));
+    document.getElementById('profe-tog-disputados').classList.add('active');
+    document.getElementById('profe-tog-pendientes').classList.remove('active');
+    document.getElementById('profe-partidos-subtoggle').style.display = 'flex';
+    navigateTo('screen-estadisticas-profe');
+    profeCargarContenido();
+  }
+
+  function profeSwitchTab(tab) {
+    profeTabActual = tab;
+    ['partidos', 'tabla', 'jugadores'].forEach(t => document.getElementById(`profe-tab-${t}`).classList.toggle('active', t === tab));
+    document.getElementById('profe-partidos-subtoggle').style.display = tab === 'partidos' ? 'flex' : 'none';
+    profeCargarContenido();
+  }
+
+  function profeSwitchEstado(estado) {
+    profeEstadoActual = estado;
+    document.getElementById('profe-tog-disputados').classList.toggle('active', estado === 'Finalizado');
+    document.getElementById('profe-tog-pendientes').classList.toggle('active', estado === 'Pendiente');
+    profeCargarContenido();
+  }
+
+  function profeRecargar() { profeCargarContenido(); }
+
+  function profeCargarContenido() {
+    const dep = document.getElementById('selector-deporte').value;
+    const cat = document.getElementById('profe-selector-cat').value;
+    const area = document.getElementById('profe-content-area');
+    area.innerHTML = '<p style="color:#aaa;text-align:center;margin:20px 0;">Cargando...</p>';
+    showLoading(true);
+
+    if (profeTabActual === 'partidos') {
+      google.script.run.withSuccessHandler(partidos => {
+        showLoading(false);
+        area.innerHTML = renderPartidosList(partidos, profeEstadoActual, false);
+      }).obtenerPartidosDashboard(dep, cat, profeEstadoActual);
+
+    } else if (profeTabActual === 'tabla') {
+      google.script.run.withSuccessHandler(tabla => {
+        showLoading(false);
+        area.innerHTML = renderTablaPosiciones(tabla);
+      }).obtenerTablaPosiciones(dep, cat);
+
+    } else {
+      // Tab jugadores — solo para el profe
+      google.script.run.withSuccessHandler(ranking => {
+        showLoading(false);
+        area.innerHTML = renderRankingJugadores(ranking);
+      }).obtenerRankingJugadores(dep, cat);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  //   RENDERERS COMPARTIDOS (generan HTML desde los datos)
+  //
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Renderiza la lista de partidos (disputados o pendientes).
+   * @param {Array} partidos  - Array de objetos partido desde el backend
+   * @param {string} estado   - 'Finalizado' | 'Pendiente'
+   * @param {boolean} esProfe - si mostrar botón convocar (solo profe en pendientes)
+   */
+  function renderPartidosList(partidos, estado, esProfe) {
+    if (!partidos || partidos.length === 0) {
+      return `<p style="text-align:center;color:#aaa;padding:20px;">No hay partidos ${estado === 'Finalizado' ? 'disputados' : 'pendientes'}.</p>`;
+    }
+    let html = '';
+    partidos.forEach(p => {
+      const esFinalizado = estado === 'Finalizado';
+      const resultado = esFinalizado
+        ? `<span style="font-size:28px;font-weight:900;color:var(--text);">${p.golesLocal} - ${p.golesVisita}</span>`
+        : `<span style="font-size:22px;font-weight:700;color:#888;">vs</span>`;
+
+      html += `
+        <div class="action-card" style="margin-bottom:12px; cursor:default; padding:16px;">
+          <p style="text-align:center;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">${p.label || p.categoria}</p>
+          <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:8px;">
+            <div style="text-align:center;flex:1;">
+              <div style="width:44px;height:44px;background:var(--success);border-radius:8px 8px 20px 20px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#C9A84C;margin:0 auto 4px;">G</div>
+              <span style="font-size:11px;color:#aaa;">Goethe</span>
+            </div>
+            ${resultado}
+            <div style="text-align:center;flex:1;">
+              <div style="width:44px;height:44px;background:#333;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin:0 auto 4px;padding:4px;text-align:center;">${(p.visitante || '').substring(0, 4).toUpperCase()}</div>
+              <span style="font-size:11px;color:#aaa;">${p.visitante || ''}</span>
+            </div>
+          </div>
+          <p style="text-align:center;font-size:12px;color:#aaa;margin-top:4px;">${p.fecha || ''} ${p.hora ? '· ' + p.hora : ''}</p>
+        </div>`;
+    });
+    return html;
+  }
+
+  /**
+   * Renderiza la tabla de posiciones.
+   * @param {Array} tabla - Array de {equipo, pj, pg, pe, pp, gf, gc, pts}
+   */
+  function renderTablaPosiciones(tabla) {
+    if (!tabla || tabla.length === 0) {
+      return `<p style="text-align:center;color:#aaa;padding:20px;">No hay datos para la tabla de posiciones.</p>`;
+    }
+    let html = `
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid #333;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#1e1e1e;color:#aaa;">
+              <th style="padding:10px 8px;text-align:left;font-weight:600;">#</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:600;">Equipo</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Partidos Jugados">PJ</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Ganados">G</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Empatados">E</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Perdidos">P</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Goles a Favor">GF</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Goles en Contra">GC</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:700;color:var(--primary);">Pts</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    tabla.forEach((eq, idx) => {
+      const esGoethe = (eq.equipo || '').toLowerCase().includes('goethe');
+      html += `
+        <tr style="border-top:1px solid #333;${esGoethe ? 'background:#1a2e1a;' : idx % 2 === 0 ? 'background:#1e1e1e;' : 'background:#242424;'}">
+          <td style="padding:10px 8px;color:#aaa;">${idx + 1}</td>
+          <td style="padding:10px 8px;font-weight:${esGoethe ? '700' : '400'};color:${esGoethe ? 'var(--success)' : '#fff'};">${eq.equipo}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.pj}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.pg}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.pe}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.pp}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.gf}</td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${eq.gc}</td>
+          <td style="padding:10px 8px;text-align:center;font-weight:700;font-size:15px;color:#fff;">${eq.pts}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div>
+      <p style="font-size:11px;color:#555;text-align:center;margin-top:8px;">PJ=Jugados · G=Ganados · E=Empates · P=Perdidos · GF=Goles Favor · GC=Goles Contra · Pts=Puntos</p>`;
+    return html;
+  }
+
+  /**
+   * Renderiza el ranking de jugadores (solo para el profe).
+   * @param {Array} ranking - Array de {nombre, posicion, goles, asistencias, pj}
+   */
+  function renderRankingJugadores(ranking) {
+    if (!ranking || ranking.length === 0) {
+      return `<p style="text-align:center;color:#aaa;padding:20px;">No hay jugadores con estadísticas en esta categoría.</p>`;
+    }
+    let html = `
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid #333;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#1e1e1e;color:#aaa;">
+              <th style="padding:10px 8px;text-align:left;font-weight:600;">#</th>
+              <th style="padding:10px 8px;text-align:left;font-weight:600;">Jugador</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;" title="Partidos Jugados">PJ</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;">⚽ Goles</th>
+              <th style="padding:10px 4px;text-align:center;font-weight:600;">🅰 Asist.</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+    ranking.forEach((j, idx) => {
+      html += `
+        <tr style="border-top:1px solid #333;${idx % 2 === 0 ? 'background:#1e1e1e;' : 'background:#242424;'}">
+          <td style="padding:10px 8px;color:#aaa;font-weight:700;">${idx + 1}</td>
+          <td style="padding:10px 8px;">
+            <span style="color:#fff;font-weight:500;">${j.nombre}</span>
+            ${j.posicion ? `<br><span style="font-size:11px;color:#888;">${j.posicion}</span>` : ''}
+          </td>
+          <td style="padding:10px 4px;text-align:center;color:#ccc;">${j.pj || 0}</td>
+          <td style="padding:10px 4px;text-align:center;font-weight:700;color:#f97316;">${j.goles || 0}</td>
+          <td style="padding:10px 4px;text-align:center;font-weight:700;color:#3b82f6;">${j.asistencias || 0}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div>
+      <p style="font-size:11px;color:#555;text-align:center;margin-top:8px;">Ordenado por goles (mayor a menor). PJ = partidos en los que fue convocado.</p>`;
+    return html;
+  }
+
+</script>
