@@ -4,6 +4,8 @@ Fecha: 10 de septiembre de 2026. Base revisada: snapshot de `main` de servicios-
 
 Decisión confirmada por el responsable el 2026-09-10: **producción comienza desde cero, sin importar datos ni cuentas del MVP**. La planilla se usa exclusivamente como referencia funcional y estructural. No se requiere importador, limpieza ni conciliación del histórico; esta decisión no autoriza borrar o modificar la planilla.
 
+Actualización confirmada el 2026-09-17: trabajo en rama `joaco`; diseño SQL de 19 tablas como base, SSO mediante **Google Workspace**, administrador principal **j.salas@goethe.edu.ar**, configurador de categorías (Menores, Cadetes, Juveniles) y de perfiles/roles/permisos. Ver [especificación funcional](H0_ESPECIFICACION_FUNCIONAL.md) y [trazabilidad del modelo recibido](H0_AJUSTES_MODELO.md). Estas definiciones reemplazan la propuesta previa de contraseñas/invitaciones de Auth propias y evitan postergar automáticamente módulos del SQL.
+
 ## Decisión recomendada
 
 Conservar los flujos y la identidad visual del MVP aprobado. Reemplazar la persistencia en Sheets y la autenticación artesanal; modularizar el frontend por funcionalidad. Implementar PostgreSQL, Auth y, si se incluyen documentos, Storage en Supabase. No trasladar literalmente el SQL existente ni volver a validar el producto desde cero.
@@ -17,7 +19,7 @@ Primera producción: Goethe, fútbol y handball, profesores, alumnos y administr
 | Prioridad | Evidencia | Consecuencia y trabajo necesario |
 |---|---|---|
 | P0 | `code.gs:57–76`: login con una credencial de profesor fija como alternativa | Eliminar ese acceso y retirar el endpoint legado al cortar. No trasladar credenciales del MVP a producción. |
-| P0 | `code.gs:49–53`, `78–98`, `3–20`: SHA-256 con salt compartido, token de activación compartido y confirmación por email en URL | Sustituir por Supabase Auth, invitaciones individuales, vencimiento y recuperación. No importar estos hashes como contraseñas de Auth. |
+| P0 | `code.gs:49–53`, `78–98`, `3–20`: SHA-256 con salt compartido, token de activación compartido y confirmación por email en URL | Sustituir por Supabase Auth con Google Workspace; recuperación de credenciales en el proveedor institucional. No importar estos hashes como contraseñas de Auth. |
 | P0 | `registrarJugadorBackend`, `guardarConvocatoriaBD`, `responderConvocatoria` y `guardarPartidoFinalizadoBD` no verifican identidad ni permisos | El DNI y los IDs recibidos del navegador no acreditan autorización. Aplicar RLS y comprobación de actor en cada operación. La exposición efectiva del MVP depende del despliegue, que no se inspeccionó. |
 | P0 | `funciones.html:460–477`: borrar estadísticas y luego guardar en otra llamada; `code.gs:459–487`: cambia resultado antes de insertar eventos | Una falla puede perder estadísticas o dejar resultados incompletos. Cierre/corrección transaccional e idempotente. |
 | P1 | `code.gs:159–203`: escribe jugador antes de terminar validaciones de todos los deportes | Un error deja altas parciales. Validar y guardar como una unidad. |
@@ -51,7 +53,7 @@ Modelo objetivo propuesto:
 | Grupo | Tablas y relaciones principales |
 |---|---|
 | Identidad | `perfiles(id → auth.users.id)`; `jugadores(id UUID, perfil_id nullable unique, ...)`; datos personales sensibles separados del perfil visible. Borrar una cuenta no debe borrar trayectoria deportiva. |
-| Permisos | `roles_globales(perfil_id, rol)` y `asignaciones_profesor(perfil_id, deporte_id, categoria_id opcional)` administradas por personal autorizado. |
+| Permisos | `roles`, `permisos`, `rol_permisos` y `asignaciones_rol` con ámbitos; configurador administrado inicialmente por j.salas@goethe.edu.ar. |
 | Familias | `responsables_jugadores(responsable_id, jugador_id, estado, verificado_por)`; varios responsables y hermanos. El email paterno no sustituye el vínculo validado. |
 | Catálogos | `deportes`, `categorias`, `temporadas`, `equipos`, `sedes`, `reglas_categoria`. |
 | Planteles | `planteles(deporte_id, categoria_id, temporada_id, equipo_id)`; `inscripciones(jugador_id, plantel_id, camiseta, desde, hasta, activo)`. Unicidad por jugador/plantel; camiseta única entre inscripciones activas si la regla institucional lo exige. |
@@ -82,18 +84,18 @@ src/
 supabase/
   migrations/
   tests/
-  functions/           # invitaciones, envíos y operaciones privilegiadas
+  functions/           # habilitación SSO, envíos y operaciones privilegiadas
   seed.sql             # únicamente datos ficticios
 tests/e2e/
 ```
 
 Reutilizar CSS y flujos aprobados; extraer componentes sin un rediseño visual integral. Sustituir `google.script.run` módulo a módulo con contratos definidos. Mantener el MVP como referencia de comportamiento durante la construcción, sin implementar escrituras simultáneas en ambas bases.
 
-Lecturas y CRUD sencillo: cliente Supabase sujeto a RLS. Operaciones que afectan varias tablas: funciones SQL/RPC transaccionales. Invitaciones de Auth, secretos y envío de correo: código de servidor. La clave pública puede estar en el navegador; las claves secretas y `service_role` nunca. Una función de servidor debe verificar actor y alcance antes de usar privilegios elevados.
+Lecturas y CRUD sencillo: cliente Supabase sujeto a RLS. Operaciones que afectan varias tablas: funciones SQL/RPC transaccionales. Habilitación de identidades SSO, secretos y envío de correo si corresponde: código de servidor. La clave pública puede estar en el navegador; las claves secretas y `service_role` nunca. Una función de servidor debe verificar actor y alcance antes de usar privilegios elevados.
 
 Contratos críticos:
 
-- `registrar_jugador`: valida el lote completo y crea jugador/inscripciones en una transacción; la invitación posterior puede reintentarse sin repetir el alta.
+- `registrar_jugador`: valida el lote completo y crea jugador/inscripciones en una transacción; la vinculación posterior a identidad SSO puede reintentarse sin repetir el alta.
 - `guardar_asistencia`: upsert por sesión/inscripción, valida plantel y permisos.
 - `responder_convocatoria`: obtiene actor de la sesión; solo cambia respuesta/transporte propios, o del hijo verificado. No permite cambiar partido, alumno ni asistencia real.
 - `cerrar_partido`: verifica rol, versión esperada y clave idempotente; bloquea el partido, valida marcador/eventos, guarda todo y cierra en la misma transacción. Dos cierres simultáneos no deben duplicar goles.
@@ -131,13 +133,17 @@ Crear primero catálogos, luego jugadores/planteles, competición y tablas depen
 
 Ejemplos de restricciones a implementar: UNIQUE de resultado/partido y sesión/jugador; CHECK de marcador no negativo; FK del resultado hacia partido. Las reglas entre varias tablas necesitan claves compuestas o validación transaccional, no un CHECK que pretenda consultar otras filas.
 
-### 4. Configurar autenticación
+### 4. Configurar autenticación institucional con Google Workspace
 
-Configurar URL principal, redirects de staging/producción y recuperación de contraseña. Usar invitaciones a correos verificados como política inicial, con alta deportiva independiente del acceso. Si un alumno no tiene correo propio, mantener su ficha sin login y habilitar al responsable validado; no crear emails inventados.
+El proveedor confirmado es Google Workspace. Preparar Google OAuth mediante Supabase Auth: aplicación institucional, audiencia autorizada, callback del proyecto y redirects de staging/producción. Si TI exige SAML en lugar de OAuth, ajustar el protocolo; no inferir ese requisito solo por usar Workspace. No implementar contraseña local ni recuperación propia: la credencial se gestiona en Google.
 
-Vincular el UUID de Auth a `perfiles`; asignar el primer administrador por un procedimiento controlado del servidor. Ningún registro público puede autoasignarse profesor/admin. Desactivar la exposición pública del alta si no se necesita. Configurar SMTP propio y probar entrega, expiración y recuperación con cuentas de prueba. No se trasladan cuentas ni hashes del MVP: crear cuentas nuevas con invitaciones individuales cuando se dé de alta a los usuarios de producción.
+Mantener alta deportiva independiente del acceso. Un alumno sin identidad habilitada conserva ficha sin login. La identidad Google verificada se vincula al UUID de Auth y a `perfiles`; un registro autenticado sin habilitación de FieldStats no recibe permisos. No confiar en el dominio o email declarado por el navegador para conceder acceso.
 
-Supabase documenta la separación entre Auth y las tablas de perfiles: [gestión de usuarios](https://supabase.com/docs/guides/auth/managing-user-data).
+Administrador principal designado: `j.salas@goethe.edu.ar`. Inicializar su rol una sola vez por procedimiento controlado de servidor después de comprobar identidad/proveedor; guardar el vínculo estable de Auth y auditoría. No reponer roles revocados automáticamente en cada login. No importar cuentas ni hashes del MVP.
+
+Implementar el configurador de perfiles/roles para crear roles, seleccionar permisos del catálogo y asignar ámbitos. Proteger al último administrador principal; verificar permisos vigentes al ejecutar operaciones aun con sesión abierta. La pantalla de categorías permite administrar Menores, Cadetes y Juveniles sin hardcodearlas en la UI. La fórmula automática no se activa hasta validar sus reglas; propuesta de asignación manual por inscripción/temporada.
+
+Guías oficiales: [acceso con Google](https://supabase.com/docs/guides/auth/social-login/auth-google) y [gestión de perfiles](https://supabase.com/docs/guides/auth/managing-user-data). Los secretos se cargan en servicios, nunca en Git. El correo transaccional es un requisito aparte si se habilitan notificaciones; no hace falta un flujo SMTP de contraseña local para el SSO.
 
 ### 5. Implementar permisos antes de conectar pantallas
 
@@ -177,14 +183,14 @@ npx supabase db push
 npx supabase gen types typescript --linked > src/data/database.types.ts
 ```
 
-Crear previamente `src/data`. Autenticarse por el flujo de CLI, sin guardar tokens en Git. Revisar el proyecto vinculado antes de ejecutar cambios. Cargar fixtures y configurar Auth/SMTP/Storage por ambiente: las migraciones SQL no configuran automáticamente todos los servicios. Referencia: [gestión de ambientes](https://supabase.com/docs/guides/deployment/managing-environments).
+Crear previamente `src/data`. Autenticarse por el flujo de CLI, sin guardar tokens en Git. Revisar el proyecto vinculado antes de ejecutar cambios. Cargar fixtures y configurar Google/Auth, Storage y correo de notificaciones si aplica por ambiente: las migraciones SQL no configuran automáticamente todos los servicios. Referencia: [gestión de ambientes](https://supabase.com/docs/guides/deployment/managing-environments).
 
 ### 9. Preparar una base nueva y su carga inicial
 
 La decisión del responsable es no llevar registros del MVP a Supabase. No desarrollar ETL, importador, tablas de equivalencias ni conciliación con Sheets. Las migraciones SQL siguen siendo necesarias para versionar el esquema: no equivalen a importar datos antiguos.
 
 1. Crear deportes, categorías, temporada, sedes y equipos iniciales con valores confirmados por el referente. No copiar automáticamente catálogos de la planilla.
-2. Crear la primera cuenta administradora por un procedimiento controlado; asignarle permisos explícitos. Dar de alta docentes e invitarlos individualmente.
+2. Habilitar al administrador j.salas@goethe.edu.ar por un procedimiento controlado de identidad Google; asignarle permisos explícitos. Habilitar identidades docentes y asignar perfiles/ámbitos desde el configurador.
 3. Cargar jugadores e inscripciones nuevas desde la aplicación. Un alumno puede tener ficha deportiva sin cuenta de acceso. No trasladar cuentas, hashes, goles, partidos ni asistencias del MVP.
 4. Usar únicamente fixtures ficticios en desarrollo/staging. Producción debe comenzar sin esos fixtures y sin registros del MVP.
 5. Verificar estados vacíos: sin entrenamientos no hay porcentaje de asistencia; sin partidos no hay promedio calculable. Mostrar “sin datos” y no 100% por defecto.
@@ -201,7 +207,7 @@ Pruebas de categorías con 30/6, 1/7, año de temporada, fechas inválidas y cas
 
 ### 11. Preparar producción y recuperación
 
-Reproducir en producción las mismas migraciones probadas; configurar secretos separados, dominio/HTTPS, SMTP, redirects y observabilidad. Publicar una versión candidata contra la base productiva antes de invitar usuarios. CI debe ejecutar compilación, tipos, pruebas de dominio, RLS y flujos críticos; una falla bloquea el despliegue.
+Reproducir en producción las mismas migraciones probadas; configurar secretos separados, dominio/HTTPS, Google SSO, redirects y observabilidad; correo de notificaciones si corresponde. Publicar una versión candidata contra la base productiva antes de habilitar usuarios. CI debe ejecutar compilación, tipos, pruebas de dominio, RLS y flujos críticos; una falla bloquea el despliegue.
 
 Verificar backups según el plan y ensayar restauración. Los backups de base no incluyen el contenido de archivos de Storage: respaldarlos por separado si existen autorizaciones. Propuesta de objetivos a validar: RPO de 24 horas y RTO de 4 horas; si perder una jornada no es aceptable, reducir RPO y elegir mecanismo/plan acorde. Referencias: [checklist de producción](https://supabase.com/docs/guides/deployment/going-into-prod) y [backups](https://supabase.com/docs/guides/platform/backups).
 
@@ -226,9 +232,9 @@ Estimaciones orientativas para un desarrollador full stack con disponibilidad so
 | H6: producción | 2–3 días | Dominio, monitoreo, recuperación, manuales y corte | Restauración ensayada, catálogos y altas iniciales verificados, cuentas y permisos correctos. |
 | H7: estabilización | 5 días calendario | Seguimiento diario, correcciones y transferencia operativa | Sin incidentes críticos pendientes; responsable puede administrar usuarios y atender incidencias. |
 
-Orden de magnitud conservador: 7–10 semanas calendario con esa disponibilidad y alcance central, incluyendo piloto y estabilización. Se retira la migración del histórico y H4 baja de 4–6 a 2–4 días de esfuerzo; ajustar el calendario completo al cerrar H0, sin prometer una fecha antes de resolver el alcance. Si el equipo trabaja por horas de taller, recalcular por capacidad efectiva. Autorizaciones completas, sanciones con cumplimiento, boletín exportable y offline completo pueden extenderlo; no asumir que están implementados porque aparecen en la propuesta.
+Orden de magnitud conservador: 7–10 semanas calendario con esa disponibilidad y alcance central, incluyendo piloto y estabilización. Se retira la migración del histórico y H4 baja de 4–6 a 2–4 días de esfuerzo; ajustar el calendario completo al cerrar H0, sin prometer una fecha antes de resolver el alcance. Si el equipo trabaja por horas de taller, recalcular por capacidad efectiva. El diseño SQL se conserva como base; autorizaciones y sanciones necesitan detalle funcional y esfuerzo propio. Boletín exportable y offline completo requieren definición adicional. Reestimar al cerrar esos detalles; no asumir que están implementados porque aparecen en la propuesta.
 
-Backlog obligatorio a clasificar en H0: ABM completo de jugadores (el código revisado muestra alta, no un ABM completo), baja deportiva, recuperación de cuenta, roles, transporte, autorizaciones, sanciones, cambios, destacado, exportación y notificaciones. Para cada uno: obligatorio en primera producción o fase posterior explícita. La paridad del MVP aprobado es el piso, no una excusa para omitir funcionalidades ya comprometidas.
+Backlog obligatorio a clasificar en H0: ABM completo de jugadores (el código revisado muestra alta, no un ABM completo), baja deportiva, soporte de acceso SSO, configuradores, transporte, autorizaciones, sanciones, cambios, destacado, exportación y notificaciones. Para cada uno: obligatorio en primera producción o fase posterior explícita. La paridad del MVP aprobado es el piso, no una excusa para omitir funcionalidades ya comprometidas.
 
 ## Condiciones de lanzamiento
 
@@ -238,6 +244,6 @@ Backlog obligatorio a clasificar en H0: ABM completo de jugadores (el código re
 - Robustez: doble clic, reconexión, sesión vencida y edición simultánea tienen resultados previsibles; nunca se muestra “guardado” ante una falla.
 - Rendimiento: medir en red representativa y con al menos el doble del pico concurrente observado. Objetivo inicial propuesto: p95 menor a 2 segundos para operaciones comunes, excluyendo reportes pesados; ajustar en H0 con volumen real.
 - Operación: alertas de errores de app, RPC fallidas y correo; logs sin DNI ni credenciales; recuperación y contacto de soporte documentados.
-- Adopción: administrador y docente pueden ejecutar tareas habituales con una guía breve; mensajes de invitación y primer ingreso probados antes de enviarlos a la comunidad.
+- Adopción: administrador y docente pueden ejecutar tareas habituales con una guía breve; instrucciones y primer ingreso SSO probados antes de habilitar a la comunidad.
 
 La próxima unidad ejecutable es H0 y luego H1: convertir el modelo corregido en migraciones completas y pruebas RLS. No hace falta cambiar las pantallas para empezar ese trabajo.
