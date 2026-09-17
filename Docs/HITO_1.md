@@ -76,9 +76,12 @@ Puertos locales: API 55321, PostgreSQL 55322 y Studio 55323. Proyecto Docker:
 `fieldstats-joaco`. `private` no está expuesto en la API; todos sus helpers definen
 `search_path` y grants explícitos. Los datos personales no están en el repositorio.
 
-El workflow `.github/workflows/database.yml` reconstruye base, ejecuta lint/pgTAP y
-comprueba que los tipos generados coincidan. Sus resultados remotos deben revisarse
-en GitHub; agregar el workflow no garantiza por sí solo que Actions esté habilitado.
+El workflow `.github/workflows/database.yml` está preparado localmente para reconstruir
+la base, ejecutar lint/pgTAP/concurrencia y comprobar los tipos generados. Aún no está
+publicado: la integración actual de GitHub no tiene permiso para escribir en
+`.github/workflows` (`Resource not accessible by integration`). Cuando un administrador
+autorice el permiso `workflow` o lo agregue manualmente desde este archivo, sus resultados
+deben revisarse en GitHub; el workflow no garantiza por sí solo que Actions esté habilitado.
 
 ## Qué necesitamos para staging
 
