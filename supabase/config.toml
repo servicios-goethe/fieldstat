@@ -1,0 +1,66 @@
+project_id = "fieldstats-joaco"
+
+[api]
+enabled = true
+port = 55321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 500
+auto_expose_new_tables = false
+
+[db]
+port = 55322
+shadow_port = 55320
+major_version = 17
+health_timeout = "3m"
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = true
+port = 55323
+api_url = "http://127.0.0.1"
+
+[local_smtp]
+enabled = false
+
+[storage]
+enabled = false
+
+[realtime]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = false
+
+[auth.sms]
+enable_signup = false
+
+# Habilitar al configurar credenciales OAuth. No hace falta Google para pgTAP.
+# Las identidades ficticias de los tests existen solo dentro de una transacción.
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+skip_nonce_check = false
+email_optional = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
