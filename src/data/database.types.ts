@@ -1271,12 +1271,31 @@ export type Database = {
         }
         Returns: string
       }
+      es_administrador_principal: { Args: never; Returns: boolean }
       guardar_categoria: {
         Args: {
           p_activo: boolean
           p_id: string
           p_nombre: string
           p_orden: number
+        }
+        Returns: string
+      }
+      guardar_deporte: {
+        Args: {
+          p_activo: boolean
+          p_codigo: string
+          p_id: string
+          p_nombre: string
+        }
+        Returns: string
+      }
+      guardar_equipo: {
+        Args: {
+          p_activo: boolean
+          p_es_propio: boolean
+          p_id: string
+          p_nombre: string
         }
         Returns: string
       }
@@ -1287,6 +1306,25 @@ export type Database = {
           p_id: string
           p_nombre: string
           p_permisos: string[]
+        }
+        Returns: string
+      }
+      guardar_sede: {
+        Args: {
+          p_activa: boolean
+          p_direccion: string
+          p_id: string
+          p_nombre: string
+        }
+        Returns: string
+      }
+      guardar_temporada: {
+        Args: {
+          p_activa: boolean
+          p_desde: string
+          p_hasta: string
+          p_id: string
+          p_nombre: string
         }
         Returns: string
       }
