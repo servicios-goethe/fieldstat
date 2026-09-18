@@ -2,8 +2,11 @@
   "name": "fieldstats",
   "private": true,
   "version": "0.1.0",
-  "description": "FieldStats: base de datos local y migraciones Supabase",
+  "description": "FieldStats: gestión deportiva con Supabase",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset --local",
@@ -12,7 +15,17 @@
     "db:types": "supabase gen types typescript --local > src/data/database.types.ts",
     "db:test:concurrency": "python3 scripts/test-admin-concurrency.py"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "2.95.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
   "devDependencies": {
-    "supabase": "2.117.0"
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.4",
+    "supabase": "2.117.0",
+    "typescript": "5.9.3",
+    "vite": "^7.3.6"
   }
 }
