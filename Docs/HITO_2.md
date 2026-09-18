@@ -1,6 +1,6 @@
 # Hito 2: núcleo operativo
 
-Estado: **en curso**. Este incremento incorpora una aplicación React/Vite y el ingreso con Google configurado en Supabase.
+Estado: **en curso**. Este incremento incorpora una aplicación React/Vite y el ingreso con Google configurado en Supabase. El cliente usa OAuth con PKCE: el retorno de Google contiene un código temporal, no tokens en la URL.
 
 ## Primer ingreso seguro
 
