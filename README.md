@@ -1,6 +1,6 @@
 # FieldStats
 
-MVP de gestión deportiva en Google Apps Script, con base Supabase en desarrollo.
+Gestión deportiva en transición desde el MVP de Google Apps Script a una aplicación React con Supabase.
 
 La rama de trabajo es `joaco`. La aplicación existente (`code.gs` y HTML) sigue usando
 Sheets; las migraciones nuevas todavía no están conectadas a sus pantallas.
@@ -8,6 +8,7 @@ Sheets; las migraciones nuevas todavía no están conectadas a sus pantallas.
 - [Plan de producción](Docs/PLAN_PRODUCCION_FIELDSTATS.md)
 - [Hito 0 y decisiones](Docs/HITO_0.md)
 - [Hito 1: base, pruebas y acceso necesario](Docs/HITO_1.md)
+- [Hito 2: núcleo operativo](Docs/HITO_2.md)
 - [Trazabilidad de las 19 tablas originales](Docs/H0_AJUSTES_MODELO.md)
 
 ## Base local
@@ -33,3 +34,19 @@ sistema. No hay temporada elegida, alumnos, profesores ni administrador habilita
 automáticamente. El bootstrap remoto requiere identidad Google verificada.
 
 Para detener los servicios: `npm run db:stop`.
+
+## Aplicación web
+
+Crear `.env.local` desde `.env.example` y completar la URL y anon key del proyecto Supabase.
+La anon key es pública por diseño; no agregar nunca una service role key al frontend.
+
+```bash
+npm ci
+npm run dev
+```
+
+Para verificar el build de producción:
+
+```bash
+npm run build
+```
