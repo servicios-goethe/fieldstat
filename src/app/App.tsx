@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../data/supabase'
+import { Dashboard } from './Dashboard'
 
 type Access = 'checking' | 'signed-out' | 'pending' | 'active' | 'inactive' | 'error'
 
@@ -55,6 +56,10 @@ export function App() {
     await supabase.auth.signOut()
   }
 
+  if (access === 'active' && session?.user.email) {
+    return <Dashboard email={session.user.email} onSignOut={() => void signOut()} />
+  }
+
   return (
     <main className="app-shell">
       <section className="card" aria-live="polite">
@@ -86,13 +91,6 @@ export function App() {
           </>
         )}
 
-        {access === 'active' && (
-          <>
-            <p>Bienvenido, <strong>{session?.user.email}</strong>.</p>
-            <p className="hint">El panel operativo se incorpora en el siguiente incremento del Hito 2.</p>
-            <button type="button" className="secondary" onClick={() => void signOut()}>Cerrar sesión</button>
-          </>
-        )}
 
         {access === 'error' && <p className="error">{message}</p>}
         {message && access !== 'error' && <p className="error">{message}</p>}
