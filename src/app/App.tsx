@@ -8,6 +8,7 @@ type Access = 'checking' | 'signed-out' | 'pending' | 'active' | 'inactive' | 'e
 export function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [access, setAccess] = useState<Access>('checking')
+  const [isPrincipal, setIsPrincipal] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -15,6 +16,7 @@ export function App() {
       setSession(nextSession)
       setMessage(null)
       if (!nextSession) {
+        setIsPrincipal(false)
         setAccess('signed-out')
         return
       }
@@ -33,6 +35,10 @@ export function App() {
         setAccess('pending')
       } else {
         setAccess(data.activo ? 'active' : 'inactive')
+        if (data.activo) {
+          const { data: principal } = await supabase.rpc('es_administrador_principal')
+          setIsPrincipal(principal === true)
+        }
       }
     }
 
@@ -57,7 +63,7 @@ export function App() {
   }
 
   if (access === 'active' && session?.user.email) {
-    return <Dashboard email={session.user.email} onSignOut={() => void signOut()} />
+    return <Dashboard email={session.user.email} isPrincipal={isPrincipal} onSignOut={() => void signOut()} />
   }
 
   return (
