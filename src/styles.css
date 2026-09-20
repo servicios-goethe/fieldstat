@@ -26,4 +26,5 @@ p { line-height: 1.55; }
 .inline-form { align-items: end; display: flex; gap: .75rem; }
 .inline-form label { display: grid; flex: 1; font-weight: 700; gap: .35rem; }
 input { border: 1px solid #b8c5d1; border-radius: 7px; font: inherit; padding: .65rem; }
+select { background: white; border: 1px solid #b8c5d1; border-radius: 7px; font: inherit; padding: .65rem; }
 @media (max-width: 600px) { .dashboard { padding: 1rem; } .dashboard header { align-items: flex-start; gap: 1rem; } .inline-form { align-items: stretch; flex-direction: column; } }
