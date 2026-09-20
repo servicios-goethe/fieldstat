@@ -1272,6 +1272,15 @@ export type Database = {
         Returns: string
       }
       es_administrador_principal: { Args: never; Returns: boolean }
+      guardar_asistencia: {
+        Args: {
+          p_entrenamiento_id: string
+          p_estado: string
+          p_inscripcion_id: string
+          p_plantel_id: string
+        }
+        Returns: undefined
+      }
       guardar_categoria: {
         Args: {
           p_activo: boolean
@@ -1287,6 +1296,16 @@ export type Database = {
           p_codigo: string
           p_id: string
           p_nombre: string
+        }
+        Returns: string
+      }
+      guardar_entrenamiento: {
+        Args: {
+          p_estado: string
+          p_id: string
+          p_inicio: string
+          p_plantel_id: string
+          p_sede_id: string
         }
         Returns: string
       }
