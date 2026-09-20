@@ -1299,6 +1299,33 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_jugador: {
+        Args: {
+          p_apellido: string
+          p_camiseta: number
+          p_desde: string
+          p_dni: string
+          p_email: string
+          p_id: string
+          p_nacimiento: string
+          p_nombre: string
+          p_plantel_id: string
+          p_telefono: string
+        }
+        Returns: string
+      }
+      guardar_plantel: {
+        Args: {
+          p_activo: boolean
+          p_categoria_id: string
+          p_deporte_id: string
+          p_equipo_id: string
+          p_id: string
+          p_sede_id: string
+          p_temporada_id: string
+        }
+        Returns: string
+      }
       guardar_rol: {
         Args: {
           p_activo: boolean
@@ -1335,6 +1362,15 @@ export type Database = {
       inicializar_administrador: {
         Args: { p_usuario: string }
         Returns: undefined
+      }
+      listar_usuarios_google: {
+        Args: never
+        Returns: {
+          email: string
+          habilitado: boolean
+          nombre: string
+          usuario_id: string
+        }[]
       }
       responder_convocatoria: {
         Args: {
