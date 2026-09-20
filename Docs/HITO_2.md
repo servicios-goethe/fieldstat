@@ -2,6 +2,10 @@
 
 Estado: **en curso**. Este incremento incorpora una aplicación React/Vite y el ingreso con Google configurado en Supabase. El cliente usa OAuth con PKCE: el retorno de Google contiene un código temporal, no tokens en la URL.
 
+## Backlog posterior
+
+- Notificar por correo al administrador cuando una identidad Google nueva solicite habilitación. La habilitación manual sigue siendo el flujo vigente en Hito 2; no se envían correos automáticamente todavía.
+
 ## Primer ingreso seguro
 
 1. Configurar en Supabase Authentication > URL Configuration la URL local (`http://localhost:5173`) como Redirect URL durante desarrollo y, más adelante, la URL HTTPS de staging.
