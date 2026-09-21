@@ -1271,6 +1271,9 @@ export type Database = {
         }
         Returns: string
       }
+      desactivar_inscripcion: { Args: { p_id: string }; Returns: undefined }
+      desactivar_jugador: { Args: { p_id: string }; Returns: undefined }
+      desactivar_plantel: { Args: { p_id: string }; Returns: undefined }
       es_administrador_principal: { Args: never; Returns: boolean }
       guardar_asistencia: {
         Args: {
@@ -1388,6 +1391,7 @@ export type Database = {
           email: string
           habilitado: boolean
           nombre: string
+          roles: string[]
           usuario_id: string
         }[]
       }
