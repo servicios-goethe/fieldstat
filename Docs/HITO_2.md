@@ -5,6 +5,7 @@ Estado: **en curso**. Este incremento incorpora una aplicación React/Vite y el 
 ## Backlog posterior
 
 - Notificar por correo al administrador cuando una identidad Google nueva solicite habilitación. La habilitación manual sigue siendo el flujo vigente en Hito 2; no se envían correos automáticamente todavía.
+- Reemplazar los mensajes inline y confirmaciones del frontend por modales reutilizables. Las operaciones deben conservar estados de éxito, error y confirmación sin depender de carteles permanentes.
 
 ## Primer ingreso seguro
 
