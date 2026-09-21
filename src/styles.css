@@ -27,6 +27,7 @@ p { line-height: 1.55; }
 .inline-form { align-items: end; display: flex; gap: .75rem; }
 .filters { display: flex; gap: .75rem; margin: .75rem 0; }
 .filters label { flex: 1; }
+.role-row { align-items: center; display: inline-flex; gap: .4rem; }
 .inline-form label { display: grid; flex: 1; font-weight: 700; gap: .35rem; }
 input { border: 1px solid #b8c5d1; border-radius: 7px; font: inherit; padding: .65rem; }
 select { background: white; border: 1px solid #b8c5d1; border-radius: 7px; font: inherit; padding: .65rem; }
