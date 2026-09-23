@@ -6,6 +6,7 @@ Estado: **en curso**. Este incremento incorpora una aplicación React/Vite y el 
 
 - Notificar por correo al administrador cuando una identidad Google nueva solicite habilitación. La habilitación manual sigue siendo el flujo vigente en Hito 2; no se envían correos automáticamente todavía.
 - Reemplazar los mensajes inline y confirmaciones del frontend por modales reutilizables. Las operaciones deben conservar estados de éxito, error y confirmación sin depender de carteles permanentes.
+- Una ficha de jugador se crea una sola vez por DNI; las inscripciones a planteles se agregan mediante un flujo separado.
 
 ## Primer ingreso seguro
 
