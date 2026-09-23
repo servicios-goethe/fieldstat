@@ -28,6 +28,8 @@ p { line-height: 1.55; }
 .panel-heading p { color: #607080; margin-bottom: 1.25rem; }
 .catalogo { list-style: none; margin: 0 0 1.25rem; padding: 0; }
 .catalogo li { align-items: center; border-top: 1px solid #e4eaf0; display: flex; justify-content: space-between; padding: .75rem 0; }
+.catalogo li > div { flex: 1; min-width: 0; }
+.inscripcion-row { align-items: center; display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; margin-top: .35rem; padding-left: .75rem; }
 .small { font-size: .85rem; padding: .5rem .7rem; }
 .inline-form { align-items: end; display: flex; gap: .75rem; }
 .filters { display: flex; gap: .75rem; margin: .75rem 0; }
