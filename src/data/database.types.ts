@@ -1385,6 +1385,23 @@ export type Database = {
         Args: { p_usuario: string }
         Returns: undefined
       }
+      inscribir_jugador_por_dni: {
+        Args: {
+          p_camiseta: number
+          p_desde: string
+          p_dni: string
+          p_plantel_id: string
+        }
+        Returns: string
+      }
+      listar_asignaciones_usuario: {
+        Args: { p_usuario: string }
+        Returns: {
+          asignacion_id: string
+          rol_id: string
+          rol_nombre: string
+        }[]
+      }
       listar_usuarios_google: {
         Args: never
         Returns: {
