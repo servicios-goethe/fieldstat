@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       asignaciones_rol: {
@@ -1336,6 +1341,25 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_partido: {
+        Args: {
+          p_categoria_id: string
+          p_cierre_confirmacion: string
+          p_deporte_id: string
+          p_estado: string
+          p_fecha_id: string
+          p_id: string
+          p_inicio: string
+          p_local_id: string
+          p_observaciones: string
+          p_plantel_id: string
+          p_sede_id: string
+          p_temporada_id: string
+          p_torneo_id: string
+          p_visitante_id: string
+        }
+        Returns: string
+      }
       guardar_plantel: {
         Args: {
           p_activo: boolean
@@ -1553,4 +1577,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
