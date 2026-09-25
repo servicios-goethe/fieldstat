@@ -1298,6 +1298,15 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_convocatoria: {
+        Args: {
+          p_convocado: boolean
+          p_id: string
+          p_inscripcion_id: string
+          p_partido_id: string
+        }
+        Returns: string
+      }
       guardar_deporte: {
         Args: {
           p_activo: boolean
