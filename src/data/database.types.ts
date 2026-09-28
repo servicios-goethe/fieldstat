@@ -1369,6 +1369,31 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_cambio: {
+        Args: {
+          p_entra_convocatoria_id: string
+          p_motivo: string
+          p_minuto: number
+          p_partido_id: string
+          p_periodo: number
+          p_sale_convocatoria_id: string
+        }
+        Returns: string
+      }
+      guardar_evento_partido: {
+        Args: {
+          p_asistidor_convocatoria_id: string
+          p_codigo: string
+          p_convocatoria_id: string
+          p_equipo_id: string
+          p_minuto: number
+          p_motivo: string
+          p_nombre: string
+          p_partido_id: string
+          p_periodo: number
+        }
+        Returns: string
+      }
       guardar_partido: {
         Args: {
           p_categoria_id: string
