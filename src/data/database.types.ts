@@ -1307,6 +1307,25 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_participacion: {
+        Args: {
+          p_camiseta?: number
+          p_capitan: boolean
+          p_convocatoria_id: string
+          p_jugo: boolean
+          p_presente: boolean
+          p_titular: boolean
+        }
+        Returns: undefined
+      }
+      guardar_resultado: {
+        Args: {
+          p_goles_local: number
+          p_goles_visitante: number
+          p_partido_id: string
+        }
+        Returns: undefined
+      }
       guardar_deporte: {
         Args: {
           p_activo: boolean
