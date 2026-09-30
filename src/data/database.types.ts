@@ -1454,6 +1454,15 @@ export type Database = {
         }
         Returns: string
       }
+      guardar_tipo_estadistica: {
+        Args: {
+          p_codigo: string
+          p_deporte_id: string
+          p_id: string
+          p_nombre: string
+        }
+        Returns: string
+      }
       habilitar_usuario: {
         Args: { p_activo: boolean; p_nombre: string; p_usuario: string }
         Returns: undefined
