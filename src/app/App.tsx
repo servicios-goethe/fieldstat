@@ -43,7 +43,14 @@ export function App() {
     }
 
     void supabase.auth.getSession().then(({ data }) => checkSession(data.session))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // La renovación silenciosa del token ocurre al volver a una pestaña.
+      // No hay que desmontar Dashboard en ese evento: hacerlo reinicia la
+      // sección seleccionada y dispara todas las cargas de datos otra vez.
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(nextSession)
+        return
+      }
       void checkSession(nextSession)
     })
     return () => listener.subscription.unsubscribe()
