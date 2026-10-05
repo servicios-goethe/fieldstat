@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../../data/supabase'
+
+type Plantel = { id: string; equipos: { nombre: string } | null; deportes: { nombre: string } | null; categorias: { nombre: string } | null; temporadas: { nombre: string } | null }
+type Fila = { jugador_id: string; nombre: string; apellido: string; entrenamientos_realizados: number; presentes: number; ausentes: number; porcentaje: number | null }
+
+export function DashboardAsistencia() {
+  const [planteles, setPlanteles] = useState<Plantel[]>([]), [plantel, setPlantel] = useState(''), [filas, setFilas] = useState<Fila[]>([]), [cargando, setCargando] = useState(false), [mensaje, setMensaje] = useState<string | null>(null)
+  useEffect(() => { void supabase.from('planteles').select('id,equipos(nombre),deportes(nombre),categorias(nombre),temporadas(nombre)').eq('activo', true).order('id').then(({ data, error }) => { if (error) setMensaje('No se pudieron cargar los planteles.'); else setPlanteles((data ?? []) as Plantel[]) }) }, [])
+  const cargar = async (id: string) => { setPlantel(id); setMensaje(null); if (!id) { setFilas([]); return }; setCargando(true); const { data, error } = await supabase.rpc('reporte_asistencia_plantel', { p_plantel_id: id }); setCargando(false); if (error) setMensaje(`No se pudo cargar la asistencia: ${error.message}`); else setFilas((data ?? []) as Fila[]) }
+  const sinEntrenamientos = filas.length > 0 && filas.every(f => f.entrenamientos_realizados === 0)
+  return <section className="panel"><h2>Dashboard de asistencia</h2><p className="hint">Resumen por jugador del plantel seleccionado.</p><label>Plantel<select value={plantel} onChange={e => void cargar(e.target.value)}><option value="">Seleccionar</option>{planteles.map(p => <option key={p.id} value={p.id}>{p.equipos?.nombre} · {p.deportes?.nombre} · {p.categorias?.nombre} · {p.temporadas?.nombre}</option>)}</select></label>{cargando && <p className="hint">Cargando asistencia…</p>}{plantel && !cargando && filas.length === 0 && <p className="hint">No hay jugadores o entrenamientos registrados para este plantel.</p>}{plantel && !cargando && sinEntrenamientos && <p className="hint">Hay jugadores, pero todavía no hay entrenamientos realizados.</p>}{filas.length > 0 && !sinEntrenamientos && <div className="table-wrap"><table><thead><tr><th>Jugador</th><th>Entrenamientos</th><th>Presentes</th><th>Ausentes</th><th>Asistencia</th></tr></thead><tbody>{filas.map(f => <tr key={f.jugador_id}><td>{f.apellido}, {f.nombre}</td><td>{f.entrenamientos_realizados}</td><td>{f.presentes}</td><td>{f.ausentes}</td><td>{f.porcentaje === null ? 'Sin datos' : `${f.porcentaje}%`}</td></tr>)}</tbody></table></div>}{mensaje && <p className="error">{mensaje}</p>}</section>
+}
