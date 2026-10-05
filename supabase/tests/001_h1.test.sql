@@ -71,17 +71,19 @@ insert into public.convocatorias(id,partido_id,inscripcion_id,plantel_id) values
  (pg_temp.uid('c1'),pg_temp.uid('p1'),pg_temp.uid('i1'),pg_temp.uid('pf')),
  (pg_temp.uid('c2'),pg_temp.uid('p2'),pg_temp.uid('i2'),pg_temp.uid('ph'));
 insert into public.entrenamientos(id,plantel_id,inicio,estado) values (pg_temp.uid('e1'),pg_temp.uid('pf'),now(),'realizado'),(pg_temp.uid('e2'),pg_temp.uid('pf'),now()+interval '1 hour','realizado');
-insert into public.asistencias(entrenamiento_id,inscripcion_id,plantel_id) values (pg_temp.uid('e1'),pg_temp.uid('i1'),pg_temp.uid('pf'));
+insert into public.asistencias(entrenamiento_id,inscripcion_id,plantel_id,estado) values (pg_temp.uid('e1'),pg_temp.uid('i1'),pg_temp.uid('pf'),'presente');
 
 -- Fixtures de reportes: fútbol tiene actividad y handball queda sin entrenamientos.
 set local role authenticated;
 select pg_temp.login('prof_f');
 select is((select count(*) from public.reporte_asistencia_plantel(pg_temp.uid('pf'))),2::bigint,'Reporte fútbol incluye sus dos jugadores');
-select is((select sum(presentes) from public.reporte_asistencia_plantel(pg_temp.uid('pf'))),2::bigint,'Reporte fútbol acumula asistencias');
+select is((select sum(presentes)::bigint from public.reporte_asistencia_plantel(pg_temp.uid('pf'))),1::bigint,'Reporte fútbol acumula asistencias');
 select pg_temp.login('prof_h');
 select is((select count(*) from public.reporte_asistencia_plantel(pg_temp.uid('ph'))),1::bigint,'Reporte handball incluye su jugador');
 select is((select max(entrenamientos_realizados) from public.reporte_asistencia_plantel(pg_temp.uid('ph'))),0::bigint,'Reporte handball conserva estado sin entrenamientos');
+select pg_temp.login('prof_f');
 select is((select count(*) from public.reporte_partidos_plantel(pg_temp.uid('pf'))),1::bigint,'Reporte de partidos fútbol incluye un encuentro');
+select pg_temp.login('prof_h');
 select is((select count(*) from public.reporte_partidos_plantel(pg_temp.uid('ph'))),1::bigint,'Reporte de partidos handball incluye un encuentro');
 reset role;
 
