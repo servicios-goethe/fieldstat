@@ -70,8 +70,20 @@ from unnest(array['p1','p2']) v;
 insert into public.convocatorias(id,partido_id,inscripcion_id,plantel_id) values
  (pg_temp.uid('c1'),pg_temp.uid('p1'),pg_temp.uid('i1'),pg_temp.uid('pf')),
  (pg_temp.uid('c2'),pg_temp.uid('p2'),pg_temp.uid('i2'),pg_temp.uid('ph'));
-insert into public.entrenamientos(id,plantel_id,inicio) values (pg_temp.uid('e1'),pg_temp.uid('pf'),now()),(pg_temp.uid('e2'),pg_temp.uid('pf'),now()+interval '1 hour');
+insert into public.entrenamientos(id,plantel_id,inicio,estado) values (pg_temp.uid('e1'),pg_temp.uid('pf'),now(),'realizado'),(pg_temp.uid('e2'),pg_temp.uid('pf'),now()+interval '1 hour','realizado');
 insert into public.asistencias(entrenamiento_id,inscripcion_id,plantel_id) values (pg_temp.uid('e1'),pg_temp.uid('i1'),pg_temp.uid('pf'));
+
+-- Fixtures de reportes: fútbol tiene actividad y handball queda sin entrenamientos.
+set local role authenticated;
+select pg_temp.login('prof_f');
+select is((select count(*) from public.reporte_asistencia_plantel(pg_temp.uid('pf'))),2::bigint,'Reporte fútbol incluye sus dos jugadores');
+select is((select sum(presentes) from public.reporte_asistencia_plantel(pg_temp.uid('pf'))),2::bigint,'Reporte fútbol acumula asistencias');
+select pg_temp.login('prof_h');
+select is((select count(*) from public.reporte_asistencia_plantel(pg_temp.uid('ph'))),1::bigint,'Reporte handball incluye su jugador');
+select is((select max(entrenamientos_realizados) from public.reporte_asistencia_plantel(pg_temp.uid('ph'))),0::bigint,'Reporte handball conserva estado sin entrenamientos');
+select is((select count(*) from public.reporte_partidos_plantel(pg_temp.uid('pf'))),1::bigint,'Reporte de partidos fútbol incluye un encuentro');
+select is((select count(*) from public.reporte_partidos_plantel(pg_temp.uid('ph'))),1::bigint,'Reporte de partidos handball incluye un encuentro');
+reset role;
 
 -- Integridad relacional: estas pruebas usan al propietario para aislar constraints de RLS.
 select throws_ok($$insert into public.resultados values(pg_temp.uid('inexistente'),1,0)$$,'23503',null,'Resultado no puede existir sin partido');
