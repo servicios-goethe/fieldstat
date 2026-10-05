@@ -21,7 +21,7 @@ administración y jugadores, sin mostrar porcentajes engañosos cuando todavía 
 2. ✅ Dashboard de asistencia.
 3. ✅ Dashboard de partidos y resultados.
 4. ✅ Filtros y estados vacíos.
-5. Pruebas con fixtures de fútbol y handball.
+5. 🟡 Fixtures de fútbol y handball agregadas; ejecución local pendiente por disponibilidad de Supabase CLI/Docker.
 6. Verificación de rendimiento con el volumen esperado.
 
 ## Criterio de cierre
