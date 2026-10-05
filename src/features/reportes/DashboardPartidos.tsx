@@ -1,0 +1,12 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../../data/supabase'
+
+type Plantel = { id: string; equipos: { nombre: string } | null; deportes: { nombre: string } | null; categorias: { nombre: string } | null; temporadas: { nombre: string } | null }
+type Fila = { partido_id: string; inicio: string; estado: string; local_nombre: string; visitante_nombre: string; goles_local: number | null; goles_visitante: number | null }
+
+export function DashboardPartidos() {
+  const [planteles, setPlanteles] = useState<Plantel[]>([]), [plantel, setPlantel] = useState(''), [filas, setFilas] = useState<Fila[]>([]), [cargando, setCargando] = useState(false), [mensaje, setMensaje] = useState<string | null>(null)
+  useEffect(() => { void supabase.from('planteles').select('id,equipos(nombre),deportes(nombre),categorias(nombre),temporadas(nombre)').eq('activo', true).order('id').then(({ data, error }) => { if (error) setMensaje('No se pudieron cargar los planteles.'); else setPlanteles((data ?? []) as Plantel[]) }) }, [])
+  const cargar = async (id: string) => { setPlantel(id); setMensaje(null); if (!id) { setFilas([]); return }; setCargando(true); const { data, error } = await supabase.rpc('reporte_partidos_plantel', { p_plantel_id: id }); setCargando(false); if (error) setMensaje(`No se pudieron cargar los partidos: ${error.message}`); else setFilas((data ?? []) as Fila[]) }
+  return <section className="panel"><h2>Dashboard de partidos y resultados</h2><p className="hint">Resumen de encuentros del plantel seleccionado.</p><label>Plantel<select value={plantel} onChange={e => void cargar(e.target.value)}><option value="">Seleccionar</option>{planteles.map(p => <option key={p.id} value={p.id}>{p.equipos?.nombre} · {p.deportes?.nombre} · {p.categorias?.nombre} · {p.temporadas?.nombre}</option>)}</select></label>{cargando && <p className="hint">Cargando partidos…</p>}{plantel && !cargando && filas.length === 0 && <p className="hint">No hay partidos registrados para este plantel.</p>}{filas.length > 0 && !cargando && <div className="table-wrap"><table><thead><tr><th>Fecha</th><th>Partido</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>{filas.map(f => <tr key={f.partido_id}><td>{new Date(f.inicio).toLocaleString()}</td><td>{f.local_nombre} vs. {f.visitante_nombre}</td><td>{f.estado}</td><td>{f.goles_local === null || f.goles_visitante === null ? 'Sin resultado' : `${f.goles_local} - ${f.goles_visitante}`}</td></tr>)}</tbody></table></div>}{mensaje && <p className="error">{mensaje}</p>}</section>
+}
