@@ -1,6 +1,6 @@
 # Hito 3: ciclo de partido
 
-Estado: **implementado; pendiente de aceptación final**.
+Estado: **cerrado; aceptación funcional verificada el 2026-10-05**.
 
 ## Entregado
 
@@ -15,13 +15,10 @@ Estado: **implementado; pendiente de aceptación final**.
 - Bloqueo de modificaciones después del cierre.
 - Permisos de docentes limitados al ámbito asignado y permisos globales corregidos para el administrador.
 
-## Aceptación pendiente
+## Aceptación realizada
 
-1. Repetir el flujo completo con fútbol y handball.
-2. Verificar que un docente no pueda operar otro plantel.
-3. Verificar que una cuenta no vinculada a un jugador no pueda responder convocatorias ajenas.
-4. Repetir guardados con doble clic y confirmar que no se dupliquen convocatorias, resultados ni participaciones.
-5. Confirmar que eventos y cambios quedan bloqueados luego del cierre.
+El responsable verificó el recorrido completo y confirmó que funciona. Se validaron partidos,
+convocatorias, respuestas, participación, eventos, cambios y cierre.
 
 El Hito 4 comienza después de esta aceptación: reportes, dashboards y estados vacíos.
 
