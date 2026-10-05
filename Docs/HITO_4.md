@@ -1,6 +1,6 @@
 # Hito 4: reportes y dashboards
 
-Estado: **iniciado**.
+Estado: **en curso; puntos 1 a 4 implementados**.
 
 Objetivo: transformar los datos operativos del Hito 3 en consultas útiles para docentes,
 administración y jugadores, sin mostrar porcentajes engañosos cuando todavía no hay datos.
@@ -17,10 +17,10 @@ administración y jugadores, sin mostrar porcentajes engañosos cuando todavía 
 
 ## Orden de implementación
 
-1. Consultas agregadas y permisos de lectura.
-2. Dashboard de asistencia.
-3. Dashboard de partidos y resultados.
-4. Filtros y estados vacíos.
+1. ✅ Consultas agregadas y permisos de lectura.
+2. ✅ Dashboard de asistencia.
+3. ✅ Dashboard de partidos y resultados.
+4. ✅ Filtros y estados vacíos.
 5. Pruebas con fixtures de fútbol y handball.
 6. Verificación de rendimiento con el volumen esperado.
 
