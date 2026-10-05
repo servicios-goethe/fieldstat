@@ -1267,6 +1267,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      reporte_asistencia_plantel: {
+        Args: { p_plantel_id: string }
+        Returns: {
+          apellido: string
+          ausentes: number
+          entrenamientos_realizados: number
+          jugador_id: string
+          nombre: string
+          porcentaje: number | null
+          presentes: number
+        }[]
+      }
+      reporte_partidos_plantel: {
+        Args: { p_plantel_id: string }
+        Returns: {
+          estado: string
+          goles_local: number | null
+          goles_visitante: number | null
+          inicio: string
+          local_nombre: string
+          partido_id: string
+          visitante_nombre: string
+        }[]
+      }
       asignar_rol: {
         Args: {
           p_deporte?: string
