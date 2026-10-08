@@ -46,6 +46,10 @@ function DashboardShell({ email, isPrincipal, onSignOut }: { email: string; isPr
         setRol('alumno')
         setRuta('mis-convocatorias')
       } else if (isPrincipal) setRol('administrador')
+      else if (ruta === 'configuracion' || ruta === 'mis-convocatorias') {
+        setRuta('hoy')
+        sessionStorage.setItem('fieldstats-route', 'hoy')
+      }
       setRolesCargados(true)
     })
   }, [isPrincipal])
