@@ -13,7 +13,8 @@
     "db:lint": "supabase db lint --local --schema public,private --fail-on error",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/data/database.types.ts",
-    "db:test:concurrency": "python3 scripts/test-admin-concurrency.py"
+    "db:test:concurrency": "python3 scripts/test-admin-concurrency.py",
+    "db:test:performance": "python3 scripts/test-report-performance.py"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.95.3",
