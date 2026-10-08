@@ -198,6 +198,24 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
 .match-summary div { background: var(--color-bg); display: flex; justify-content: space-between; padding: 12px; }
 .match-summary dt, .match-summary dd { margin: 0; }
 .match-summary dd { font-family: var(--font-heading); font-weight: 800; }
+.today-dashboard { display: flex; flex-direction: column; gap: 24px; }
+.today-intro { align-items: flex-end; display: flex; gap: 24px; justify-content: space-between; }
+.today-intro h2 { color: var(--color-text); font-size: 32px; margin: 6px 0; }
+.today-intro p { margin-top: 0; }
+.today-stats { display: flex; gap: 24px; }
+.today-stats div { border-left: 2px solid var(--color-accent); min-width: 92px; padding-left: 10px; }
+.today-stats strong { display: block; font-family: var(--font-heading); font-size: 30px; line-height: 1; }
+.today-stats span { color: var(--color-neutral-700); display: block; font-size: 11px; margin-top: 5px; }
+.today-grid { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; }
+.today-card { display: flex; flex-direction: column; gap: 12px; }
+.today-card h3 { color: var(--color-text); font-size: 22px; margin: 4px 0 0; }
+.today-card > button { align-self: flex-start; margin-top: auto; }
+.today-row { align-items: center; border-bottom: 1px solid var(--color-divider); display: flex; gap: 12px; justify-content: space-between; padding: 10px 0; }
+.today-row div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.today-row strong { overflow-wrap: anywhere; }
+.today-row span:not(.tag) { color: var(--color-neutral-700); font-size: 12px; }
+.today-actions { align-items: center; display: flex; gap: 24px; justify-content: space-between; }
+.today-actions h3 { margin: 4px 0 0; }
 
 @media (max-width: 600px) {
   .app-shell { padding: 16px; }
@@ -226,6 +244,10 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
   .stepper button { font-size: 11px; }
   .goal-row { align-items: stretch; grid-template-columns: 1fr 1fr; }
   .goal-row input, .goal-row select { min-width: 0; }
+  .today-intro, .today-actions { align-items: stretch; flex-direction: column; gap: 16px; }
+  .today-stats { justify-content: space-between; }
+  .today-stats div { min-width: 0; }
+  .today-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 767px) {
