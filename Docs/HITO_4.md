@@ -1,6 +1,6 @@
 # Hito 4: reportes y dashboards
 
-Estado: **en curso; puntos 1 a 4 implementados**.
+Estado: **cerrado; verificado el 2026-10-07**.
 
 Objetivo: transformar los datos operativos del Hito 3 en consultas útiles para docentes,
 administración y jugadores, sin mostrar porcentajes engañosos cuando todavía no hay datos.
@@ -22,7 +22,7 @@ administración y jugadores, sin mostrar porcentajes engañosos cuando todavía 
 3. ✅ Dashboard de partidos y resultados.
 4. ✅ Filtros y estados vacíos.
 5. ✅ Fixtures de fútbol y handball verificadas; 74 pruebas exitosas en Supabase local.
-6. Verificación de rendimiento con el volumen esperado.
+6. ✅ Benchmark local con 4.000 jugadores, 20 entrenamientos y 80.000 asistencias: 445,54 ms de ejecución SQL; transacción revertida.
 
 ## Criterio de cierre
 
@@ -31,3 +31,4 @@ administración y jugadores, sin mostrar porcentajes engañosos cuando todavía 
 - Un jugador sólo ve sus propios datos personales y deportivos permitidos.
 - Sin actividad no se muestra 0% ni 100% por defecto.
 - Las consultas funcionan con datos vacíos y con múltiples planteles.
+- El reporte de asistencia se mantiene por debajo del objetivo inicial de 2 segundos de SQL con el volumen de referencia probado.
