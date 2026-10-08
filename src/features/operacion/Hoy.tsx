@@ -23,10 +23,18 @@ export function Hoy() {
     const hasta = new Date(ahora); hasta.setHours(23, 59, 59, 999)
     const cargar = async () => {
       setCargando(true)
+      let plantelesQuery = supabase.from('planteles').select('id').eq('activo', true)
+      if (ctx.deporte) plantelesQuery = plantelesQuery.eq('deporte_id', ctx.deporte)
+      if (ctx.categoria) plantelesQuery = plantelesQuery.eq('categoria_id', ctx.categoria)
+      if (ctx.temporada) plantelesQuery = plantelesQuery.eq('temporada_id', ctx.temporada)
+      const { data: plantelesContexto, error: plantelesError } = await plantelesQuery
+      const ids = (plantelesContexto ?? []).map((x: { id: string }) => x.id)
+      if (plantelesError) { if (activo) { setError('No se pudo cargar el contexto del día.'); setCargando(false) }; return }
+      if (!ids.length) { if (activo) { setEntrenamientos([]); setPartidos([]); setConvocatorias(0); setCargando(false) }; return }
       const [e, p, c] = await Promise.all([
-        supabase.from('entrenamientos').select('id,inicio,estado,sede:sedes(nombre),planteles(equipos(nombre),deportes(nombre),categorias(nombre))').gte('inicio', desde.toISOString()).lte('inicio', hasta.toISOString()).order('inicio'),
-        supabase.from('partidos').select('id,inicio,estado,cierre_confirmacion,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),planteles(equipos(nombre),deportes(nombre),categorias(nombre))').in('estado', ['pendiente']).gte('inicio', desde.toISOString()).lte('inicio', hasta.toISOString()).order('inicio'),
-        supabase.from('convocatorias').select('id', { count: 'exact', head: true }).eq('respuesta', 'pendiente'),
+        supabase.from('entrenamientos').select('id,inicio,estado,sede:sedes(nombre),planteles(equipos(nombre),deportes(nombre),categorias(nombre))').in('plantel_id', ids).gte('inicio', desde.toISOString()).lte('inicio', hasta.toISOString()).order('inicio'),
+        supabase.from('partidos').select('id,inicio,estado,cierre_confirmacion,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),planteles(equipos(nombre),deportes(nombre),categorias(nombre))').in('plantel_id', ids).in('estado', ['pendiente']).gte('inicio', desde.toISOString()).lte('inicio', hasta.toISOString()).order('inicio'),
+        supabase.from('convocatorias').select('id,plantel_id', { count: 'exact', head: true }).in('plantel_id', ids).eq('respuesta', 'pendiente'),
       ])
       if (!activo) return
       if (e.error || p.error || c.error) setError('No se pudo cargar el resumen del día.')
