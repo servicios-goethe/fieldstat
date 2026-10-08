@@ -119,6 +119,31 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
 .dashboard-student .app-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 16px; }
 .avatar { align-items: center; background: var(--color-text); color: var(--color-bg); display: inline-flex; font-size: 12px; font-weight: 800; height: 32px; justify-content: center; width: 32px; }
 .header-signout { min-height: 36px; }
+.attendance-panel { gap: 16px; }
+.attendance-top { align-items: flex-end; display: flex; gap: 24px; justify-content: space-between; }
+.attendance-top h2 { margin: 4px 0 0; }
+.attendance-selects { display: flex; gap: 12px; min-width: min(100%, 520px); }
+.attendance-selects label { display: grid; flex: 1; font-size: 12px; font-weight: 600; gap: 4px; }
+.attendance-create { border-bottom: 1px solid var(--color-divider); padding-bottom: 16px; }
+.attendance-summary { align-items: flex-end; display: flex; justify-content: space-between; }
+.attendance-summary h3 { font-size: 20px; margin: 4px 0 0; }
+.attendance-summary p { margin: 0; }
+.attendance-counts { display: flex; gap: 16px; }
+.attendance-counts strong { font-family: var(--font-heading); font-size: 24px; font-weight: 800; }
+.attendance-counts span { color: var(--color-neutral-700); display: block; font-family: var(--font-body); font-size: 11px; font-weight: 400; }
+.attendance-counts .is-pending { color: #8f2118; }
+.attendance-progress { background: var(--color-neutral-300); height: 6px; overflow: hidden; }
+.attendance-progress span { background: var(--color-accent); display: block; height: 100%; transition: width .2s ease; }
+.attendance-list { display: flex; flex-direction: column; }
+.attendance-row { align-items: center; border-bottom: 1px solid var(--color-divider); display: flex; gap: 12px; min-height: 64px; padding: 8px 0; }
+.shirt-number { color: var(--color-neutral-700); font-family: var(--font-heading); font-size: 16px; font-weight: 800; min-width: 28px; text-align: center; }
+.player-name { flex: 1; font-size: 15px; }
+.attendance-toggles { display: flex; gap: 8px; }
+.toggle { align-items: center; background: transparent; border: 2px solid var(--color-text); border-radius: 0; color: var(--color-text); display: inline-flex; font-family: var(--font-heading); font-size: 15px; font-weight: 800; height: 48px; justify-content: center; min-height: 48px; min-width: 48px; padding: 0; text-align: center; }
+.toggle:hover { background: var(--color-neutral-200); }
+.toggle[aria-pressed="true"].is-positive { background: var(--color-accent); color: var(--color-bg); }
+.toggle[aria-pressed="true"].is-negative { background: var(--color-text); color: var(--color-bg); }
+.attendance-footer { align-items: center; background: var(--color-surface); border-top: 2px solid var(--color-divider); display: flex; gap: 12px; justify-content: flex-end; padding-top: 16px; position: sticky; bottom: 0; }
 
 @media (max-width: 600px) {
   .app-shell { padding: 16px; }
@@ -130,6 +155,11 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
   .panel { padding: 16px; }
   .modal-actions { justify-content: stretch; }
   .modal-actions button { flex: 1; }
+  .attendance-top, .attendance-summary { align-items: stretch; flex-direction: column; }
+  .attendance-selects { flex-direction: column; min-width: 0; }
+  .attendance-counts { justify-content: space-between; }
+  .attendance-footer { align-items: stretch; flex-direction: column-reverse; margin: 0 -16px -16px; padding: 12px 16px 16px; }
+  .attendance-footer button { justify-content: center; text-align: center; width: 100%; }
 }
 
 @media (max-width: 767px) {
