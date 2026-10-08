@@ -54,7 +54,7 @@ export function CierrePartido() {
   }
 
   const cerrar = async () => {
-    if (!partido || !seleccionado || !tipoGol) { setTipoMensaje('error'); setMensaje('Configurá un tipo de evento para registrar los goles.'); return }
+    if (!partido || !seleccionado || (goles.length > 0 && !tipoGol)) { setTipoMensaje('error'); setMensaje('Configurá un tipo de evento para registrar los goles.'); return }
     setGuardando(true); setMensaje(null)
     const participacionError = await guardarParticipacion()
     if (participacionError) { setGuardando(false); setTipoMensaje('error'); setMensaje('No se pudo guardar la participación.'); return }
