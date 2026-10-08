@@ -12,6 +12,7 @@ Sheets; las migraciones nuevas todavía no están conectadas a sus pantallas.
 - [Hito 3: ciclo de partido](Docs/HITO_3.md)
 - [Hito 4: reportes y rendimiento](Docs/HITO_4.md)
 - [Hito 5: piloto](Docs/HITO_5.md)
+- [Plan de rediseño UX/UI](Docs/PLAN_REDISENO_UX_UI.md)
 - [Trazabilidad de las 19 tablas originales](Docs/H0_AJUSTES_MODELO.md)
 
 ## Base local
