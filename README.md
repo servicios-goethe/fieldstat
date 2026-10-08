@@ -9,6 +9,9 @@ Sheets; las migraciones nuevas todavía no están conectadas a sus pantallas.
 - [Hito 0 y decisiones](Docs/HITO_0.md)
 - [Hito 1: base, pruebas y acceso necesario](Docs/HITO_1.md)
 - [Hito 2: núcleo operativo](Docs/HITO_2.md)
+- [Hito 3: ciclo de partido](Docs/HITO_3.md)
+- [Hito 4: reportes y rendimiento](Docs/HITO_4.md)
+- [Hito 5: piloto](Docs/HITO_5.md)
 - [Trazabilidad de las 19 tablas originales](Docs/H0_AJUSTES_MODELO.md)
 
 ## Base local
