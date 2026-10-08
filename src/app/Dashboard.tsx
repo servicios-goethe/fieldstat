@@ -14,6 +14,7 @@ import { Convocatorias } from '../features/operacion/Convocatorias'
 import { MisConvocatorias } from '../features/operacion/MisConvocatorias'
 import { CierrePartido } from '../features/operacion/CierrePartido'
 import { EventosPartido } from '../features/operacion/EventosPartido'
+import { Hoy } from '../features/operacion/Hoy'
 import { DashboardAsistencia } from '../features/reportes/DashboardAsistencia'
 import { DashboardPartidos } from '../features/reportes/DashboardPartidos'
 
@@ -83,6 +84,7 @@ function ContextBar() {
 
 function RouteContent({ ruta }: { ruta: Ruta }) {
   switch (ruta) {
+    case 'hoy': return <Hoy />
     case 'planteles': return <><PlantelesJugadores /><InscripcionExistente /></>
     case 'entrenamientos': return <Asistencia />
     case 'partidos': return <><Partidos /><Convocatorias /><CierrePartido /><EventosPartido /></>
@@ -91,6 +93,6 @@ function RouteContent({ ruta }: { ruta: Ruta }) {
     case 'jugadores': return <PlantelesJugadores />
     case 'configuracion': return <><Usuarios /><Categorias /><Deportes /><TiposEventos /><Temporadas /><Sedes /><Equipos /></>
     case 'mis-convocatorias': return <MisConvocatorias />
-    default: return <section className="panel welcome"><p className="eyebrow">Próxima tarea</p><h2>Hoy</h2><p className="hint">Seleccioná una sección para comenzar. La vista de tareas del día se incorporará en la siguiente etapa.</p><div className="quick-links"><button onClick={() => window.dispatchEvent(new CustomEvent('fieldstats:navigate', { detail: 'entrenamientos' }))}>Ir a entrenamientos</button><button className="secondary" onClick={() => window.dispatchEvent(new CustomEvent('fieldstats:navigate', { detail: 'partidos' }))}>Ir a partidos</button></div></section>
+    default: return <Hoy />
   }
 }
