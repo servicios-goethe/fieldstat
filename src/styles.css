@@ -216,6 +216,9 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
 .today-row span:not(.tag) { color: var(--color-neutral-700); font-size: 12px; }
 .today-actions { align-items: center; display: flex; gap: 24px; justify-content: space-between; }
 .today-actions h3 { margin: 4px 0 0; }
+.report-panel { max-width: 960px; }
+.report-panel .panel-heading h2 { color: var(--color-text); margin: 4px 0; }
+.report-panel > label { display: grid; font-size: 12px; font-weight: 600; gap: 4px; margin-top: 16px; max-width: 640px; }
 
 @media (max-width: 600px) {
   .app-shell { padding: 16px; }
