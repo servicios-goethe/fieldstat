@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../data/supabase'
+import { useContextoDeportivo } from '../../app/ContextoDeportivo'
 
 type Respuesta = 'pendiente' | 'acepta' | 'rechaza'
-type Convocatoria = { id: string; convocado: boolean; respuesta: Respuesta; transporte: string | null; partidos: { inicio: string; cierre_confirmacion: string; estado: string; local: { nombre: string } | null; visitante: { nombre: string } | null; planteles: { deportes: { nombre: string } | null; categorias: { nombre: string } | null } | null } | null }
+type Convocatoria = { id: string; convocado: boolean; respuesta: Respuesta; transporte: string | null; partidos: { inicio: string; cierre_confirmacion: string; estado: string; local: { nombre: string } | null; visitante: { nombre: string } | null; planteles: { deporte_id: string; categoria_id: string; temporada_id: string; deportes: { nombre: string } | null; categorias: { nombre: string } | null } | null } | null }
 
 function estaCerrada(item: Convocatoria) {
   const partido = item.partidos
@@ -17,6 +18,7 @@ function plazo(cierre: string) {
 }
 
 export function MisConvocatorias() {
+  const contexto = useContextoDeportivo()
   const [items, setItems] = useState<Convocatoria[]>([])
   const [respuestas, setRespuestas] = useState<Record<string, Respuesta>>({})
   const [transportes, setTransportes] = useState<Record<string, string>>({})
@@ -26,19 +28,20 @@ export function MisConvocatorias() {
 
   const cargar = async () => {
     setCargando(true)
-    const { data, error } = await supabase.from('convocatorias').select('id,convocado,respuesta,transporte,partidos(inicio,cierre_confirmacion,estado,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),planteles(deportes(nombre),categorias(nombre)))').eq('convocado', true).order('id')
+    const { data, error } = await supabase.from('convocatorias').select('id,convocado,respuesta,transporte,partidos(inicio,cierre_confirmacion,estado,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),planteles(deporte_id,categoria_id,temporada_id,deportes(nombre),categorias(nombre)))').eq('convocado', true).order('id')
     setCargando(false)
     if (error) {
       setMensaje('No se pudieron cargar tus convocatorias.')
       return
     }
     const rows = (data ?? []) as Convocatoria[]
-    setItems(rows)
-    setRespuestas(Object.fromEntries(rows.map(x => [x.id, x.respuesta || 'pendiente'])))
-    setTransportes(Object.fromEntries(rows.map(x => [x.id, x.transporte ?? ''])))
+    const filtradas = rows.filter(x => !x.partidos?.planteles || ((!contexto.deporte || x.partidos.planteles.deporte_id === contexto.deporte) && (!contexto.categoria || x.partidos.planteles.categoria_id === contexto.categoria) && (!contexto.temporada || x.partidos.planteles.temporada_id === contexto.temporada)))
+    setItems(filtradas)
+    setRespuestas(Object.fromEntries(filtradas.map(x => [x.id, x.respuesta || 'pendiente'])))
+    setTransportes(Object.fromEntries(filtradas.map(x => [x.id, x.transporte ?? ''])))
   }
 
-  useEffect(() => { void cargar() }, [])
+  useEffect(() => { void cargar() }, [contexto.deporte, contexto.categoria, contexto.temporada])
 
   const responder = async (event: FormEvent, item: Convocatoria) => {
     event.preventDefault()
