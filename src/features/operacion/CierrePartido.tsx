@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../data/supabase'
+import { useContextoDeportivo } from '../../app/ContextoDeportivo'
 
 type Paso = 0 | 1 | 2 | 3
-type Partido = { id: string; inicio: string; estado: string; local_id: string; visitante_id: string; local: { nombre: string } | null; visitante: { nombre: string } | null; resultados: { goles_local: number; goles_visitante: number } | null }
+type Partido = { id: string; inicio: string; estado: string; local_id: string; visitante_id: string; local: { nombre: string } | null; visitante: { nombre: string } | null; resultados: { goles_local: number; goles_visitante: number } | null; planteles: { deporte_id: string; categoria_id: string; temporada_id: string } | null }
 type Participacion = { titular: boolean; capitan: boolean; presente: boolean | null; jugo: boolean | null; camiseta: number | null }
 type Convocatoria = { id: string; respuesta: string; inscripciones: { camiseta: number | null; jugadores: { nombre: string; apellido: string } | null } | null; participaciones: Participacion | null }
 type TipoEvento = { id: string; codigo: string; nombre: string }
@@ -11,10 +12,12 @@ type Gol = { id: number; jugador: string; asistidor: string; equipo: string; min
 const pasos = ['Presencia', 'Participación', 'Goles', 'Confirmar']
 
 export function CierrePartido() {
-  const [partidos, setPartidos] = useState<Partido[]>([]), [partido, setPartido] = useState(''), [items, setItems] = useState<Convocatoria[]>([]), [tipos, setTipos] = useState<TipoEvento[]>([]), [paso, setPaso] = useState<Paso>(0), [goles, setGoles] = useState<Gol[]>([]), [rival, setRival] = useState(''), [mensaje, setMensaje] = useState<string | null>(null), [tipoMensaje, setTipoMensaje] = useState<'hint' | 'error' | 'success'>('hint'), [guardando, setGuardando] = useState(false), [golesGuardados, setGolesGuardados] = useState<number[]>([])
+  const contexto = useContextoDeportivo()
+  const [todosPartidos, setPartidos] = useState<Partido[]>([]), [partido, setPartido] = useState(''), [items, setItems] = useState<Convocatoria[]>([]), [tipos, setTipos] = useState<TipoEvento[]>([]), [paso, setPaso] = useState<Paso>(0), [goles, setGoles] = useState<Gol[]>([]), [rival, setRival] = useState(''), [mensaje, setMensaje] = useState<string | null>(null), [tipoMensaje, setTipoMensaje] = useState<'hint' | 'error' | 'success'>('hint'), [guardando, setGuardando] = useState(false), [golesGuardados, setGolesGuardados] = useState<number[]>([])
 
-  const cargar = async () => { const { data } = await supabase.from('partidos').select('id,inicio,estado,local_id,visitante_id,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),resultados(goles_local,goles_visitante)').order('inicio', { ascending: false }); setPartidos((data ?? []) as Partido[]) }
+  const cargar = async () => { const { data } = await supabase.from('partidos').select('id,inicio,estado,local_id,visitante_id,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),resultados(goles_local,goles_visitante),planteles(deporte_id,categoria_id,temporada_id)').order('inicio', { ascending: false }); setPartidos((data ?? []) as Partido[]) }
   useEffect(() => { void cargar() }, [])
+  const partidos = todosPartidos.filter(p => (!contexto.deporte || p.planteles?.deporte_id === contexto.deporte) && (!contexto.categoria || p.planteles?.categoria_id === contexto.categoria) && (!contexto.temporada || p.planteles?.temporada_id === contexto.temporada))
 
   const seleccionar = async (id: string) => {
     setPartido(id); setPaso(0); setGoles([]); setGolesGuardados([]); setMensaje(null)
