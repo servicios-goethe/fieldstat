@@ -1,13 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../data/supabase'
+import { useContextoDeportivo } from '../../app/ContextoDeportivo'
 
 type Estado = 'presente' | 'ausente' | null
-type Plantel = { id: string; nombre: string }
+type Plantel = { id: string; nombre: string; deporte_id: string; categoria_id: string; temporada_id: string }
 type Inscripcion = { id: string; jugadores: { nombre: string; apellido: string } | null; camiseta: number | null }
 type Entrenamiento = { id: string; plantel_id: string; inicio: string; estado: string }
 
 export function Asistencia() {
-  const [planteles, setPlanteles] = useState<Plantel[]>([])
+  const contexto = useContextoDeportivo()
+  const [todosPlanteles, setPlanteles] = useState<Plantel[]>([])
   const [plantel, setPlantel] = useState('')
   const [entrenamientos, setEntrenamientos] = useState<Entrenamiento[]>([])
   const [entrenamiento, setEntrenamiento] = useState('')
@@ -21,7 +23,7 @@ export function Asistencia() {
 
   const cargar = async () => {
     const [p, e] = await Promise.all([
-      supabase.from('planteles').select('id,equipos(nombre),deportes(nombre),categorias(nombre)').order('id'),
+      supabase.from('planteles').select('id,deporte_id,categoria_id,temporada_id,equipos(nombre),deportes(nombre),categorias(nombre)').order('id'),
       supabase.from('entrenamientos').select('id,plantel_id,inicio,estado').order('inicio', { ascending: false }),
     ])
     if (p.error || e.error) {
@@ -29,7 +31,7 @@ export function Asistencia() {
       setMensaje('No se pudieron cargar los entrenamientos.')
       return
     }
-    setPlanteles((p.data ?? []).map((x: any) => ({ id: x.id, nombre: [x.equipos?.nombre, x.deportes?.nombre, x.categorias?.nombre].filter(Boolean).join(' · ') })))
+    setPlanteles((p.data ?? []).map((x: any) => ({ id: x.id, deporte_id: x.deporte_id, categoria_id: x.categoria_id, temporada_id: x.temporada_id, nombre: [x.equipos?.nombre, x.deportes?.nombre, x.categorias?.nombre].filter(Boolean).join(' · ') })))
     setEntrenamientos((e.data ?? []) as Entrenamiento[])
   }
 
@@ -73,6 +75,9 @@ export function Asistencia() {
     setEntrenamiento('')
     setMensaje(null)
   }
+
+  const plantelesVisibles = todosPlanteles.filter(p => (!contexto.deporte || p.deporte_id === contexto.deporte) && (!contexto.categoria || p.categoria_id === contexto.categoria) && (!contexto.temporada || p.temporada_id === contexto.temporada))
+  const planteles = plantelesVisibles
 
   const crear = async (event: FormEvent) => {
     event.preventDefault()
