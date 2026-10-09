@@ -87,7 +87,7 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
 
 .dashboard-app { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 0; max-width: none; min-height: 100vh; padding: 0; }
 .sidebar { background: var(--color-surface); border-right: 1px solid var(--color-divider); display: flex; flex-direction: column; min-height: 100vh; }
-.brand { border-bottom: 2px solid var(--color-divider); display: flex; flex-direction: column; gap: 2px; padding: 16px; }
+.brand { background: var(--color-surface); border-bottom: 1px solid var(--color-divider); display: flex; flex-direction: column; gap: 2px; padding: 16px; }
 .brand strong { color: var(--color-text); font-family: var(--font-heading); font-size: 20px; font-weight: 800; }
 .sidebar nav { display: flex; flex: 1; flex-direction: column; gap: 20px; padding: 16px 0; }
 .nav-group { display: flex; flex-direction: column; }
@@ -102,14 +102,14 @@ th { border-bottom: 2px solid var(--color-divider); color: var(--color-neutral-7
 .dashboard-main { min-width: 0; }
 .app-header.mobile-only { display: none; }
 .role-badge { color: var(--color-neutral-700); font-size: 12px; text-transform: capitalize; }
-.context-bar { align-items: center; border-bottom: 2px solid var(--color-divider); display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 24px; }
+.context-bar { align-items: center; background: var(--color-surface); border-bottom: 1px solid var(--color-divider); display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 24px; }
 .segmented { border: 1px solid var(--color-divider); border-radius: var(--radius); display: inline-flex; overflow: hidden; }
 .segmented button { background: transparent; border: 0; color: var(--color-text); min-height: 36px; padding: 7px 12px; }
 .segmented button:hover { background: var(--color-neutral-200); }
 .segmented button.active { background: var(--color-accent-100); color: var(--color-accent-800); font-weight: 600; }
 .context-bar label { align-items: center; display: inline-flex; font-size: 13px; gap: 8px; margin-left: auto; }
 .context-bar select { min-height: 36px; width: auto; }
-.route-heading { align-items: flex-end; display: flex; justify-content: space-between; padding: 24px 24px 0; }
+.route-heading { align-items: flex-end; background: var(--color-surface); display: flex; justify-content: space-between; padding: 24px 24px 0; }
 .route-heading h1 { color: var(--color-text); font-size: 32px; margin: 4px 0 0; }
 .route-content { display: flex; flex-direction: column; gap: 24px; padding: 20px 24px 32px; }
 .welcome { max-width: 720px; }
