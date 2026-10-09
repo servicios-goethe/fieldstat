@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../data/supabase'
+import { useContextoDeportivo } from '../../app/ContextoDeportivo'
 
-type Partido = { id: string; plantel_id: string; inicio: string; local: { nombre: string } | null; visitante: { nombre: string } | null }
+type Partido = { id: string; plantel_id: string; inicio: string; local: { nombre: string } | null; visitante: { nombre: string } | null; planteles: { deporte_id: string; categoria_id: string; temporada_id: string } | null }
 type Inscripcion = { id: string; camiseta: number | null; jugadores: { nombre: string; apellido: string } | null }
 type Convocatoria = { id: string; inscripcion_id: string; convocado: boolean; respuesta: string }
 
 export function Convocatorias() {
-  const [partidos, setPartidos] = useState<Partido[]>([]), [inscripciones, setInscripciones] = useState<Inscripcion[]>([]), [convocatorias, setConvocatorias] = useState<Record<string, Convocatoria>>({}), [partido, setPartido] = useState(''), [mensaje, setMensaje] = useState<string | null>(null)
-  const cargarPartidos = async () => { const { data } = await supabase.from('partidos').select('id,plantel_id,inicio,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre)').eq('estado', 'pendiente').order('inicio'); setPartidos((data ?? []) as Partido[]) }
+  const contexto = useContextoDeportivo()
+  const [todosPartidos, setPartidos] = useState<Partido[]>([]), [inscripciones, setInscripciones] = useState<Inscripcion[]>([]), [convocatorias, setConvocatorias] = useState<Record<string, Convocatoria>>({}), [partido, setPartido] = useState(''), [mensaje, setMensaje] = useState<string | null>(null)
+  const cargarPartidos = async () => { const { data } = await supabase.from('partidos').select('id,plantel_id,inicio,local:equipos!partidos_local_id_fkey(nombre),visitante:equipos!partidos_visitante_id_fkey(nombre),planteles(deporte_id,categoria_id,temporada_id)').eq('estado', 'pendiente').order('inicio'); setPartidos((data ?? []) as Partido[]) }
   useEffect(() => { void cargarPartidos() }, [])
+  const partidos = todosPartidos.filter(p => (!contexto.deporte || p.planteles?.deporte_id === contexto.deporte) && (!contexto.categoria || p.planteles?.categoria_id === contexto.categoria) && (!contexto.temporada || p.planteles?.temporada_id === contexto.temporada))
   const cargarConvocatoria = async (id: string) => {
     const p = partidos.find(x => x.id === id); if (!p) return
     const [i, c] = await Promise.all([supabase.from('inscripciones').select('id,camiseta,jugadores(nombre,apellido)').eq('plantel_id', p.plantel_id).eq('activa', true).order('id'), supabase.from('convocatorias').select('id,inscripcion_id,convocado,respuesta').eq('partido_id', id)])
